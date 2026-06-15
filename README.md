@@ -1,11 +1,31 @@
-# React + Vite
+# TP_PW Monorepo
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Este repositório foi reorganizado em um monorepo com duas pastas principais:
 
-Currently, two official plugins are available:
+- `frontend/` - aplicação React + Vite
+- `backend/` - API Node.js + Express + JWT
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Instalação
+
+No diretório raiz:
+
+```bash
+npm install
+```
+
+## Scripts principais
+
+```bash
+npm run dev:frontend
+npm run dev:backend
+npm run start:backend
+```
+
+## Tecnologias
+
+- Backend: Node.js, Express, JWT, MongoDB
+- Frontend: React, Vite
+- Controle de versão: Git / GitHub
 
 ## React Compiler
 
