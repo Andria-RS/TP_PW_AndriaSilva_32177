@@ -1,36 +1,46 @@
-# TP_PW Monorepo
+# TP_PW - Plataforma de partilha de fotografias
 
-Este repositório foi reorganizado em um monorepo com duas pastas principais:
+Este projeto implementa a opção 26 do enunciado: uma aplicação web para partilha de fotografias com autenticação, álbuns, visibilidade pública/privada, comentários e likes.
 
-- `frontend/` - aplicação React + Vite
-- `backend/` - API Node.js + Express + JWT
+## Funcionalidades incluídas
 
-## Instalação
+- Registo e login de utilizadores
+- Criação de álbuns
+- Upload de fotos
+- Definição de visibilidade pública/privada
+- Galeria pública com filtros por tema e álbum
+- Comentários em fotos
+- Likes em fotos
 
-No diretório raiz:
+## Estrutura do projeto
+
+- frontend/ - interface React + Vite
+- backend/ - API Node.js + Express + MongoDB + JWT
+
+## Como correr
+
+Na raiz do projeto:
 
 ```bash
 npm install
+npm run dev:backend
 ```
 
-## Scripts principais
+Em outra consola:
 
 ```bash
 npm run dev:frontend
-npm run dev:backend
-npm run start:backend
 ```
 
-## Tecnologias
+## Variáveis de ambiente
 
-- Backend: Node.js, Express, JWT, MongoDB
-- Frontend: React, Vite
-- Controle de versão: Git / GitHub
+O backend espera um ficheiro de ambiente com:
 
-## React Compiler
+- MONGO_URI
+- JWT_SECRET
+- PORT (opcional)
+- CLIENT_URL (opcional)
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Objetivo de avaliação
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Este projeto está alinhado com o enunciado naquilo que foi pedido para esta opção: autenticação, gestão de álbuns, gestão de fotos, visibilidade pública/privada, comentários e likes.
