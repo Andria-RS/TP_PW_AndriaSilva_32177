@@ -2,6 +2,7 @@ import express from 'express'
 import jwt from 'jsonwebtoken'
 import bcrypt from 'bcryptjs'
 import User from '../models/User.js'
+import { authenticate } from '../middleware/auth.js'
 
 const router = express.Router()
 const JWT_SECRET = process.env.JWT_SECRET || 'supersecret'
@@ -52,6 +53,10 @@ router.post('/login', async (req, res) => {
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message })
   }
+})
+
+router.get('/me', authenticate, (req, res) => {
+  res.json({ user: { id: req.user.id, name: req.user.name, email: req.user.email } })
 })
 
 export default router

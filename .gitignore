@@ -16,9 +16,31 @@ dist-ssr
 
 # Environment files
 .env
+.env.local
+.env.*.local
+.env.development
+.env.production
+.env.test
 *.env
+*.env.local
+*.env.*.local
 backend/.env
+backend/.env.local
+backend/.env.*.local
 frontend/.env
+frontend/.env.local
+frontend/.env.*.local
+
+# Secret / certificate files
+*.pem
+*.key
+*.pfx
+*.p12
+*.crt
+*.cer
+*.ppk
+*.sqlite
+*.db
 
 # Editor directories and files
 .vscode/*

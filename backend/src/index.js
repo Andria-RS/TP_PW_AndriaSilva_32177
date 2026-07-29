@@ -4,6 +4,9 @@ import dotenv from 'dotenv'
 import mongoose from 'mongoose'
 import authRoutes from './routes/auth.js'
 import photosRoutes from './routes/photos.js'
+import albumsRoutes from './routes/albums.js'
+import commentsRoutes from './routes/comments.js'
+import likesRoutes from './routes/likes.js'
 
 dotenv.config()
 
@@ -16,6 +19,9 @@ app.use(express.json())
 
 app.use('/api/auth', authRoutes)
 app.use('/api/photos', photosRoutes)
+app.use('/api/albums', albumsRoutes)
+app.use('/api/comments', commentsRoutes)
+app.use('/api/likes', likesRoutes)
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' })
 })
