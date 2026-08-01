@@ -16,6 +16,7 @@ const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/tp_pw'
 
 app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:5173' }))
 app.use(express.json())
+app.use('/uploads', express.static('uploads'))
 
 app.use('/api/auth', authRoutes)
 app.use('/api/photos', photosRoutes)

@@ -6,8 +6,9 @@ const getAuthHeaders = () => {
 }
 
 export const authFetch = async (url, options = {}) => {
+  const isFormData = options.body instanceof FormData
   const headers = {
-    'Content-Type': 'application/json',
+    ...(!isFormData ? { 'Content-Type': 'application/json' } : {}),
     ...getAuthHeaders(),
     ...options.headers
   }
@@ -25,8 +26,9 @@ export const authFetch = async (url, options = {}) => {
 }
 
 export const publicFetch = async (url, options = {}) => {
+  const isFormData = options.body instanceof FormData
   const headers = {
-    'Content-Type': 'application/json',
+    ...(!isFormData ? { 'Content-Type': 'application/json' } : {}),
     ...options.headers
   }
   const response = await fetch(`${API_BASE}${url}`, { ...options, headers })

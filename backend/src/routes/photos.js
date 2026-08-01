@@ -1,9 +1,27 @@
 import express from 'express'
+import fs from 'fs'
+import path from 'path'
+import multer from 'multer'
 import Photo from '../models/Photo.js'
 import Album from '../models/Album.js'
 import { authenticate } from '../middleware/auth.js'
 
 const router = express.Router()
+
+const uploadDir = path.resolve(process.cwd(), 'uploads')
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true })
+}
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, uploadDir),
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname) || '.jpg'
+    cb(null, `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`)
+  }
+})
+
+const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } })
 
 router.get('/', async (req, res) => {
   try {
@@ -34,11 +52,13 @@ router.get('/mine', authenticate, async (req, res) => {
   }
 })
 
-router.post('/', authenticate, async (req, res) => {
+router.post('/', authenticate, upload.single('image'), async (req, res) => {
   try {
-    const { title, imageUrl, description, albumId, isPublic } = req.body
+    const { title, description, albumId, isPublic, theme } = req.body
+    const imageUrl = req.file ? `/uploads/${req.file.filename}` : req.body.imageUrl
+
     if (!title || !imageUrl) {
-      return res.status(400).json({ message: 'Title e imageUrl são obrigatórios' })
+      return res.status(400).json({ message: 'Título e imagem são obrigatórios' })
     }
 
     const photoData = {
@@ -46,7 +66,7 @@ router.post('/', authenticate, async (req, res) => {
       imageUrl,
       description,
       theme: undefined,
-      isPublic: isPublic !== false,
+      isPublic: isPublic !== 'false' && isPublic !== false,
       author: req.user._id
     }
 
@@ -60,8 +80,8 @@ router.post('/', authenticate, async (req, res) => {
       photoData.theme = album.theme
     }
 
-    if (!photoData.theme && req.body.theme) {
-      photoData.theme = req.body.theme
+    if (!photoData.theme && theme) {
+      photoData.theme = theme
     }
 
     if (!photoData.theme) {
