@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { authFetch, publicFetch } from '../services/api.js'
+import { ALLOWED_THEMES } from '../constants/themes.js'
 
 function HomePage() {
   const navigate = useNavigate()
@@ -27,6 +28,12 @@ function HomePage() {
   }, [albums])
 
   const featuredPhoto = photos[0] || null
+
+  const getImageUrl = (imageUrl) => {
+    if (!imageUrl) return ''
+    if (imageUrl.startsWith('http')) return imageUrl
+    return `http://localhost:4000${imageUrl}`
+  }
 
   const fetchCurrentUser = async () => {
     try {
@@ -151,12 +158,21 @@ function HomePage() {
 
         <div className="lumen-nav-actions">
           <div className="lumen-search-box">
-            <input
-              type="text"
-              placeholder="Pesquisar tema..."
+            <select
               value={themeFilter}
-              onChange={(e) => setThemeFilter(e.target.value)}
-            />
+              onChange={async (e) => {
+                const nextTheme = e.target.value
+                setThemeFilter(nextTheme)
+                await fetchPhotos(nextTheme, selectedAlbum)
+              }}
+            >
+              <option value="">Todos os temas</option>
+              {ALLOWED_THEMES.map((theme) => (
+                <option key={theme} value={theme}>
+                  {theme}
+                </option>
+              ))}
+            </select>
           </div>
 
           {user ? (
@@ -193,9 +209,17 @@ function HomePage() {
 
         <div className="lumen-hero-image-card">
           {featuredPhoto?.imageUrl ? (
-            <img src={featuredPhoto.imageUrl} alt={featuredPhoto.title} />
+            <img
+              src={getImageUrl(featuredPhoto.imageUrl)}
+              alt={featuredPhoto.title}
+            />
           ) : (
-            <div className="lumen-hero-placeholder">Sem fotografia em destaque</div>
+            <div className="lumen-hero-placeholder">
+              <div>
+                <strong>Sem fotografia em destaque</strong>
+                <p>Adiciona fotos públicas para dar vida à homepage da Lumen.</p>
+              </div>
+            </div>
           )}
         </div>
       </section>
@@ -214,7 +238,10 @@ function HomePage() {
           {photos.slice(0, 4).map((photo) => (
             <article key={photo._id} className="lumen-photo-card">
               <div className="lumen-photo-thumb">
-                <img src={photo.imageUrl} alt={photo.title} />
+                <img
+                  src={getImageUrl(photo.imageUrl)}
+                  alt={photo.title}
+                />
               </div>
 
               <div className="lumen-photo-overlay">
@@ -314,7 +341,7 @@ function HomePage() {
           Todos
         </button>
 
-        {themeSuggestions.map((theme) => (
+        {ALLOWED_THEMES.filter((theme) => themeSuggestions.includes(theme)).map((theme) => (
           <button
             key={theme}
             type="button"

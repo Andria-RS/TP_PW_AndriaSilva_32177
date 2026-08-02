@@ -16,6 +16,12 @@ function AlbumPage() {
     fetchAlbum()
   }, [albumId])
 
+  const getImageUrl = (imageUrl) => {
+    if (!imageUrl) return ''
+    if (imageUrl.startsWith('http')) return imageUrl
+    return `http://localhost:4000${imageUrl}`
+  }
+
   const fetchAlbum = async () => {
     try {
       const data = await publicFetch(`/albums/${albumId}`)
@@ -47,6 +53,7 @@ function AlbumPage() {
   const handleTogglePhotoDetails = async (photoId) => {
     const nextId = activePhotoId === photoId ? null : photoId
     setActivePhotoId(nextId)
+
     if (nextId) {
       await Promise.all([fetchPhotoComments(photoId), fetchPhotoLikes(photoId)])
     }
@@ -55,6 +62,7 @@ function AlbumPage() {
   const handleCommentSubmit = async (event, photoId) => {
     event.preventDefault()
     const text = (commentInput[photoId] || '').trim()
+
     if (!text) {
       return
     }
@@ -85,7 +93,11 @@ function AlbumPage() {
   }
 
   if (!album) {
-    return <div className="auth-shell"><p className="status-message">A carregar álbum...</p></div>
+    return (
+      <div className="auth-shell">
+        <p className="status-message">A carregar álbum...</p>
+      </div>
+    )
   }
 
   return (
@@ -94,18 +106,36 @@ function AlbumPage() {
         <span>Álbum</span>
         <h1>{album.name}</h1>
         <p>{album.description}</p>
-        {album.coverImageUrl && <img src={album.coverImageUrl} alt={album.name} className="album-cover album-banner-cover" />}
-        <Link className="button-link" to="/">Voltar à galeria</Link>
+
+        {album.coverImageUrl && (
+          <img
+            src={getImageUrl(album.coverImageUrl)}
+            alt={album.name}
+            className="album-cover album-banner-cover"
+          />
+        )}
+
+        <Link className="button-link" to="/">
+          Voltar à galeria
+        </Link>
       </div>
-      {photos.length === 0 ? <div className="empty-state">Não há fotos neste álbum.</div> : (
+
+      {photos.length === 0 ? (
+        <div className="empty-state">Não há fotos neste álbum.</div>
+      ) : (
         <div className="photo-grid">
           {photos.map((photo) => (
             <article key={photo._id} className="photo-card">
-              <img src={photo.imageUrl} alt={photo.title} />
+              <img
+                src={getImageUrl(photo.imageUrl)}
+                alt={photo.title}
+              />
+
               <div className="photo-info">
                 <strong>{photo.title}</strong>
                 <span>{photo.theme}</span>
                 <p>{photo.description}</p>
+
                 <div className="photo-actions">
                   <button type="button" onClick={() => handleTogglePhotoDetails(photo._id)}>
                     {activePhotoId === photo._id ? 'Ocultar detalhes' : 'Ver detalhes'}
@@ -115,12 +145,14 @@ function AlbumPage() {
                   </button>
                   <span>{photoLikes[photo._id] ?? 0} likes</span>
                 </div>
+
                 {activePhotoId === photo._id && (
                   <div className="comment-panel">
                     <div className="comment-summary">
                       <strong>{photoLikes[photo._id] ?? 0} likes</strong>
                       <span>{(photoComments[photo._id] || []).length} comentários</span>
                     </div>
+
                     {(photoComments[photo._id] || []).length === 0 ? (
                       <p className="empty-state">Sem comentários ainda.</p>
                     ) : (
@@ -133,12 +165,21 @@ function AlbumPage() {
                         ))}
                       </div>
                     )}
-                    <form className="comment-form" onSubmit={(event) => handleCommentSubmit(event, photo._id)}>
+
+                    <form
+                      className="comment-form"
+                      onSubmit={(event) => handleCommentSubmit(event, photo._id)}
+                    >
                       <input
                         type="text"
                         placeholder="Escreva um comentário..."
                         value={commentInput[photo._id] || ''}
-                        onChange={(event) => setCommentInput((prev) => ({ ...prev, [photo._id]: event.target.value }))}
+                        onChange={(event) =>
+                          setCommentInput((prev) => ({
+                            ...prev,
+                            [photo._id]: event.target.value
+                          }))
+                        }
                         required
                       />
                       <button type="submit">Enviar</button>
@@ -150,6 +191,7 @@ function AlbumPage() {
           ))}
         </div>
       )}
+
       {status && <p className="status-message">{status}</p>}
     </main>
   )

@@ -1,14 +1,27 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { authFetch, publicFetch } from '../services/api.js'
+import { authFetch } from '../services/api.js'
+import { ALLOWED_THEMES } from '../constants/themes.js'
 
 function ProfilePage() {
   const navigate = useNavigate()
   const [user, setUser] = useState(null)
   const [albums, setAlbums] = useState([])
   const [photos, setPhotos] = useState([])
-  const [albumForm, setAlbumForm] = useState({ name: '', description: '', theme: '', isPublic: true, coverImageUrl: '' })
-  const [photoForm, setPhotoForm] = useState({ title: '', imageUrl: '', description: '', albumId: '', theme: '' })
+  const [albumForm, setAlbumForm] = useState({
+    name: '',
+    description: '',
+    theme: '',
+    isPublic: true,
+    coverImageUrl: ''
+  })
+  const [photoForm, setPhotoForm] = useState({
+    title: '',
+    imageUrl: '',
+    description: '',
+    albumId: '',
+    theme: ''
+  })
   const [imageFile, setImageFile] = useState(null)
   const [coverImageFile, setCoverImageFile] = useState(null)
   const [status, setStatus] = useState('')
@@ -16,6 +29,12 @@ function ProfilePage() {
   useEffect(() => {
     fetchProfileData()
   }, [])
+
+  const getImageUrl = (imageUrl) => {
+    if (!imageUrl) return ''
+    if (imageUrl.startsWith('http')) return imageUrl
+    return `http://localhost:4000${imageUrl}`
+  }
 
   const fetchProfileData = async () => {
     try {
@@ -46,6 +65,7 @@ function ProfilePage() {
     formData.append('description', albumForm.description)
     formData.append('theme', albumForm.theme)
     formData.append('isPublic', String(albumForm.isPublic))
+
     if (coverImageFile) {
       formData.append('coverImage', coverImageFile)
     } else {
@@ -57,7 +77,13 @@ function ProfilePage() {
         method: 'POST',
         body: formData
       })
-      setAlbumForm({ name: '', description: '', theme: '', isPublic: true, coverImageUrl: '' })
+      setAlbumForm({
+        name: '',
+        description: '',
+        theme: '',
+        isPublic: true,
+        coverImageUrl: ''
+      })
       setCoverImageFile(null)
       setStatus('Álbum criado')
       fetchProfileData()
@@ -79,6 +105,7 @@ function ProfilePage() {
     formData.append('description', photoForm.description)
     formData.append('albumId', photoForm.albumId)
     formData.append('theme', photoForm.theme)
+
     if (imageFile) {
       formData.append('image', imageFile)
     } else {
@@ -90,7 +117,13 @@ function ProfilePage() {
         method: 'POST',
         body: formData
       })
-      setPhotoForm({ title: '', imageUrl: '', description: '', albumId: '', theme: '' })
+      setPhotoForm({
+        title: '',
+        imageUrl: '',
+        description: '',
+        albumId: '',
+        theme: ''
+      })
       setImageFile(null)
       setStatus('Foto adicionada')
       fetchProfileData()
@@ -105,7 +138,11 @@ function ProfilePage() {
   }
 
   if (!user) {
-    return <div className="auth-shell"><p className="status-message">A carregar...</p></div>
+    return (
+      <div className="auth-shell">
+        <p className="status-message">A carregar...</p>
+      </div>
+    )
   }
 
   return (
@@ -127,17 +164,27 @@ function ProfilePage() {
           <div className="panel-header">
             <h2>Os meus álbuns</h2>
           </div>
-          {albums.length === 0 ? <div className="empty-state">Ainda não criou álbuns.</div> : (
+
+          {albums.length === 0 ? (
+            <div className="empty-state">Ainda não criou álbuns.</div>
+          ) : (
             <div className="photo-grid">
               {albums.map((album) => (
                 <div key={album._id} className="album-card">
                   {album.coverImageUrl ? (
-                    <img src={album.coverImageUrl} alt={album.name} className="album-cover" />
+                    <img
+                      src={getImageUrl(album.coverImageUrl)}
+                      alt={album.name}
+                      className="album-cover"
+                    />
                   ) : (
                     <div className="album-cover placeholder">Sem capa</div>
                   )}
+
                   <div className="photo-info">
-                    <Link to={`/albums/${album._id}`} className="album-title-link"><strong>{album.name}</strong></Link>
+                    <Link to={`/albums/${album._id}`} className="album-title-link">
+                      <strong>{album.name}</strong>
+                    </Link>
                     <span>{album.theme}</span>
                     <p>{album.description}</p>
                     <small>{album.isPublic ? 'Público' : 'Privado'}</small>
@@ -153,31 +200,71 @@ function ProfilePage() {
           <form onSubmit={handleAlbumSubmit}>
             <label>
               Nome do álbum
-              <input name="name" value={albumForm.name} onChange={(e) => setAlbumForm({ ...albumForm, name: e.target.value })} required />
+              <input
+                name="name"
+                value={albumForm.name}
+                onChange={(e) => setAlbumForm({ ...albumForm, name: e.target.value })}
+                required
+              />
             </label>
+
             <label>
               Tema
-              <input name="theme" value={albumForm.theme} onChange={(e) => setAlbumForm({ ...albumForm, theme: e.target.value })} required />
+              <select
+                name="theme"
+                value={albumForm.theme}
+                onChange={(e) => setAlbumForm({ ...albumForm, theme: e.target.value })}
+                required
+              >
+                <option value="">Seleciona um tema</option>
+                {ALLOWED_THEMES.map((theme) => (
+                  <option key={theme} value={theme}>
+                    {theme}
+                  </option>
+                ))}
+              </select>
             </label>
+
             <label>
               Descrição
-              <textarea name="description" value={albumForm.description} onChange={(e) => setAlbumForm({ ...albumForm, description: e.target.value })} />
+              <textarea
+                name="description"
+                value={albumForm.description}
+                onChange={(e) => setAlbumForm({ ...albumForm, description: e.target.value })}
+              />
             </label>
+
             <label>
               Capa do álbum
-              <input type="file" accept="image/*" onChange={(e) => setCoverImageFile(e.target.files?.[0] || null)} />
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => setCoverImageFile(e.target.files?.[0] || null)}
+              />
             </label>
+
             <label>
               Ou introduz uma URL da capa
-              <input name="coverImageUrl" value={albumForm.coverImageUrl} onChange={(e) => setAlbumForm({ ...albumForm, coverImageUrl: e.target.value })} />
+              <input
+                name="coverImageUrl"
+                value={albumForm.coverImageUrl}
+                onChange={(e) => setAlbumForm({ ...albumForm, coverImageUrl: e.target.value })}
+              />
             </label>
+
             <label>
               Público?
-              <select value={String(albumForm.isPublic)} onChange={(e) => setAlbumForm({ ...albumForm, isPublic: e.target.value === 'true' })}>
+              <select
+                value={String(albumForm.isPublic)}
+                onChange={(e) =>
+                  setAlbumForm({ ...albumForm, isPublic: e.target.value === 'true' })
+                }
+              >
                 <option value="true">Sim</option>
                 <option value="false">Não</option>
               </select>
             </label>
+
             <button type="submit">Criar álbum</button>
           </form>
 
@@ -185,42 +272,86 @@ function ProfilePage() {
           <form onSubmit={handlePhotoSubmit}>
             <label>
               Título
-              <input name="title" value={photoForm.title} onChange={(e) => setPhotoForm({ ...photoForm, title: e.target.value })} required />
+              <input
+                name="title"
+                value={photoForm.title}
+                onChange={(e) => setPhotoForm({ ...photoForm, title: e.target.value })}
+                required
+              />
             </label>
+
             <label>
               Imagem
-              <input type="file" accept="image/*" onChange={(e) => setImageFile(e.target.files?.[0] || null)} />
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => setImageFile(e.target.files?.[0] || null)}
+              />
             </label>
+
             <label>
               Ou introduz uma URL
-              <input name="imageUrl" value={photoForm.imageUrl} onChange={(e) => setPhotoForm({ ...photoForm, imageUrl: e.target.value })} />
+              <input
+                name="imageUrl"
+                value={photoForm.imageUrl}
+                onChange={(e) => setPhotoForm({ ...photoForm, imageUrl: e.target.value })}
+              />
             </label>
+
             <label>
               Álbum
-              <select value={photoForm.albumId} onChange={(e) => setPhotoForm({ ...photoForm, albumId: e.target.value })}>
+              <select
+                value={photoForm.albumId}
+                onChange={(e) => setPhotoForm({ ...photoForm, albumId: e.target.value })}
+              >
                 <option value="">Nenhum</option>
                 {albums.map((album) => (
-                  <option key={album._id} value={album._id}>{album.name}</option>
+                  <option key={album._id} value={album._id}>
+                    {album.name}
+                  </option>
                 ))}
               </select>
             </label>
+
             <label>
               Tema
-              <input name="theme" value={photoForm.theme} onChange={(e) => setPhotoForm({ ...photoForm, theme: e.target.value })} />
+              <select
+                name="theme"
+                value={photoForm.theme}
+                onChange={(e) => setPhotoForm({ ...photoForm, theme: e.target.value })}
+              >
+                <option value="">Seleciona um tema</option>
+                {ALLOWED_THEMES.map((theme) => (
+                  <option key={theme} value={theme}>
+                    {theme}
+                  </option>
+                ))}
+              </select>
             </label>
+
             <label>
               Descrição
-              <textarea name="description" value={photoForm.description} onChange={(e) => setPhotoForm({ ...photoForm, description: e.target.value })} />
+              <textarea
+                name="description"
+                value={photoForm.description}
+                onChange={(e) => setPhotoForm({ ...photoForm, description: e.target.value })}
+              />
             </label>
+
             <button type="submit">Adicionar foto</button>
           </form>
 
           <h2>As minhas fotos</h2>
-          {photos.length === 0 ? <div className="empty-state">Ainda não adicionou fotos.</div> : (
+          {photos.length === 0 ? (
+            <div className="empty-state">Ainda não adicionou fotos.</div>
+          ) : (
             <div className="photo-grid small-grid">
               {photos.map((photo) => (
                 <div key={photo._id} className="photo-card">
-                  <img src={photo.imageUrl} alt={photo.title} />
+                  <img
+                    src={getImageUrl(photo.imageUrl)}
+                    alt={photo.title}
+                  />
                   <div className="photo-info">
                     <strong>{photo.title}</strong>
                     <span>{photo.theme}</span>
