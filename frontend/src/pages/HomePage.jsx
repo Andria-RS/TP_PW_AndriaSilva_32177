@@ -59,8 +59,34 @@ function HomePage() {
       if (nextTheme) params.push(`theme=${encodeURIComponent(nextTheme)}`)
       if (nextAlbum) params.push(`albumId=${encodeURIComponent(nextAlbum)}`)
       const query = params.length ? `?${params.join('&')}` : ''
+
       const data = await publicFetch(`/photos${query}`)
       setPhotos(data)
+
+      const likesEntries = await Promise.all(
+        data.map(async (photo) => {
+          try {
+            const response = await publicFetch(`/likes/photo/${photo._id}`)
+            return [photo._id, response.likes || 0]
+          } catch {
+            return [photo._id, 0]
+          }
+        })
+      )
+
+      const commentsEntries = await Promise.all(
+        data.map(async (photo) => {
+          try {
+            const response = await publicFetch(`/comments/photo/${photo._id}`)
+            return [photo._id, response]
+          } catch {
+            return [photo._id, []]
+          }
+        })
+      )
+
+      setPhotoLikes(Object.fromEntries(likesEntries))
+      setPhotoComments(Object.fromEntries(commentsEntries))
     } catch (error) {
       setStatus(error.message)
     }

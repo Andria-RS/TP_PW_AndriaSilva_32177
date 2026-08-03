@@ -27,6 +27,31 @@ function AlbumPage() {
       const data = await publicFetch(`/albums/${albumId}`)
       setAlbum(data.album)
       setPhotos(data.photos)
+
+      const likesEntries = await Promise.all(
+        data.photos.map(async (photo) => {
+          try {
+            const response = await publicFetch(`/likes/photo/${photo._id}`)
+            return [photo._id, response.likes || 0]
+          } catch {
+            return [photo._id, 0]
+          }
+        })
+      )
+
+      const commentsEntries = await Promise.all(
+        data.photos.map(async (photo) => {
+          try {
+            const response = await publicFetch(`/comments/photo/${photo._id}`)
+            return [photo._id, response]
+          } catch {
+            return [photo._id, []]
+          }
+        })
+      )
+
+      setPhotoLikes(Object.fromEntries(likesEntries))
+      setPhotoComments(Object.fromEntries(commentsEntries))
     } catch (error) {
       setStatus(error.message)
     }
@@ -144,6 +169,7 @@ function AlbumPage() {
                     Gostar
                   </button>
                   <span>{photoLikes[photo._id] ?? 0} likes</span>
+                  <span>{(photoComments[photo._id] || []).length} comentários</span>
                 </div>
 
                 {activePhotoId === photo._id && (
