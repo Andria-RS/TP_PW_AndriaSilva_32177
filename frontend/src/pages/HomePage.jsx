@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { authFetch, publicFetch } from '../services/api.js'
 import { ALLOWED_THEMES } from '../constants/themes.js'
+import PhotoCard from '../components/PhotoCard.jsx'
+import PhotoModal from '../components/PhotoModal.jsx'
 
 function HomePage() {
   const navigate = useNavigate()
@@ -14,7 +16,7 @@ function HomePage() {
   const [photoComments, setPhotoComments] = useState({})
   const [photoLikes, setPhotoLikes] = useState({})
   const [commentInput, setCommentInput] = useState({})
-  const [activePhotoId, setActivePhotoId] = useState(null)
+  const [selectedPhoto, setSelectedPhoto] = useState(null)
 
   useEffect(() => {
     fetchAlbums()
@@ -110,13 +112,20 @@ function HomePage() {
     }
   }
 
-  const handleTogglePhotoDetails = async (photoId) => {
-    const nextId = activePhotoId === photoId ? null : photoId
-    setActivePhotoId(nextId)
+  const handleOpenPhoto = async (photo) => {
+    setSelectedPhoto(photo)
+    await Promise.all([fetchPhotoComments(photo._id), fetchPhotoLikes(photo._id)])
+  }
 
-    if (nextId) {
-      await Promise.all([fetchPhotoComments(photoId), fetchPhotoLikes(photoId)])
-    }
+  const handleClosePhoto = () => {
+    setSelectedPhoto(null)
+  }
+
+  const handleCommentChange = (photoId, value) => {
+    setCommentInput((prev) => ({
+      ...prev,
+      [photoId]: value
+    }))
   }
 
   const handleCommentSubmit = async (event, photoId) => {
@@ -262,94 +271,15 @@ function HomePage() {
       ) : (
         <section className="lumen-photo-row">
           {photos.slice(0, 4).map((photo) => (
-            <article key={photo._id} className="lumen-photo-card">
-              <div className="lumen-photo-thumb">
-                <img
-                  src={getImageUrl(photo.imageUrl)}
-                  alt={photo.title}
-                />
-              </div>
-
-              <div className="lumen-photo-overlay">
-                <div className="lumen-photo-stats">
-                  <span>♡ {photoLikes[photo._id] ?? 0}</span>
-                  <span>💬 {(photoComments[photo._id] || []).length}</span>
-                </div>
-
-                <div className="lumen-photo-meta">
-                  <small>{photo.author?.name || 'Anónimo'}</small>
-                </div>
-              </div>
-
-              <div className="lumen-photo-body">
-                <div className="refined-meta-row">
-                  <span>{photo.theme}</span>
-                  {photo.album?._id ? (
-                    <Link to={`/albums/${photo.album._id}`} className="album-inline-link">
-                      Álbum
-                    </Link>
-                  ) : null}
-                </div>
-
-                <strong>{photo.title}</strong>
-
-                <div className="photo-footer-row">
-                  <button type="button" onClick={() => handleTogglePhotoDetails(photo._id)}>
-                    {activePhotoId === photo._id ? 'Fechar' : 'Detalhes'}
-                  </button>
-                </div>
-
-                {activePhotoId === photo._id && (
-                  <div className="comment-panel refined-comment-panel">
-                    <div className="comment-summary">
-                      {user ? (
-                        <button type="button" onClick={() => handleLikePhoto(photo._id)}>
-                          Gostar
-                        </button>
-                      ) : (
-                        <span>Faz login para interagir</span>
-                      )}
-                      <span>{photoLikes[photo._id] ?? 0} likes</span>
-                      <span>{(photoComments[photo._id] || []).length} comentários</span>
-                    </div>
-
-                    {(photoComments[photo._id] || []).length === 0 ? (
-                      <p className="empty-state">Sem comentários ainda.</p>
-                    ) : (
-                      <div className="comments-list">
-                        {photoComments[photo._id].map((comment) => (
-                          <div key={comment._id} className="comment-item">
-                            <strong>{comment.author?.name || 'Anónimo'}</strong>
-                            <p>{comment.text}</p>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {user ? (
-                      <form
-                        className="comment-form"
-                        onSubmit={(event) => handleCommentSubmit(event, photo._id)}
-                      >
-                        <input
-                          type="text"
-                          placeholder="Escreve um comentário..."
-                          value={commentInput[photo._id] || ''}
-                          onChange={(event) =>
-                            setCommentInput((prev) => ({
-                              ...prev,
-                              [photo._id]: event.target.value
-                            }))
-                          }
-                          required
-                        />
-                        <button type="submit">Enviar</button>
-                      </form>
-                    ) : null}
-                  </div>
-                )}
-              </div>
-            </article>
+            <PhotoCard
+              key={photo._id}
+              photo={photo}
+              likesCount={photoLikes[photo._id] ?? 0}
+              commentsCount={(photoComments[photo._id] || []).length}
+              onOpen={handleOpenPhoto}
+              getImageUrl={getImageUrl}
+              showAlbumLink
+            />
           ))}
         </section>
       )}
@@ -401,6 +331,20 @@ function HomePage() {
           </label>
         </section>
       )}
+
+      <PhotoModal
+        photo={selectedPhoto}
+        isOpen={Boolean(selectedPhoto)}
+        onClose={handleClosePhoto}
+        user={user}
+        likesCount={selectedPhoto ? photoLikes[selectedPhoto._id] ?? 0 : 0}
+        comments={selectedPhoto ? photoComments[selectedPhoto._id] || [] : []}
+        commentValue={selectedPhoto ? commentInput[selectedPhoto._id] || '' : ''}
+        onCommentChange={handleCommentChange}
+        onCommentSubmit={handleCommentSubmit}
+        onLike={handleLikePhoto}
+        getImageUrl={getImageUrl}
+      />
 
       {status && <p className="status-message home-status">{status}</p>}
     </main>

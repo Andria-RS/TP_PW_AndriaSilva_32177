@@ -1,25 +1,38 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { authFetch, publicFetch } from '../services/api.js'
+import PhotoCard from '../components/PhotoCard.jsx'
+import PhotoModal from '../components/PhotoModal.jsx'
 
 function AlbumPage() {
   const { albumId } = useParams()
+  const [user, setUser] = useState(null)
   const [album, setAlbum] = useState(null)
   const [photos, setPhotos] = useState([])
   const [photoComments, setPhotoComments] = useState({})
   const [photoLikes, setPhotoLikes] = useState({})
   const [commentInput, setCommentInput] = useState({})
-  const [activePhotoId, setActivePhotoId] = useState(null)
+  const [selectedPhoto, setSelectedPhoto] = useState(null)
   const [status, setStatus] = useState('')
 
   useEffect(() => {
     fetchAlbum()
+    fetchCurrentUser()
   }, [albumId])
 
   const getImageUrl = (imageUrl) => {
     if (!imageUrl) return ''
     if (imageUrl.startsWith('http')) return imageUrl
     return `http://localhost:4000${imageUrl}`
+  }
+
+  const fetchCurrentUser = async () => {
+    try {
+      const data = await authFetch('/auth/me')
+      setUser(data.user)
+    } catch {
+      setUser(null)
+    }
   }
 
   const fetchAlbum = async () => {
@@ -75,22 +88,26 @@ function AlbumPage() {
     }
   }
 
-  const handleTogglePhotoDetails = async (photoId) => {
-    const nextId = activePhotoId === photoId ? null : photoId
-    setActivePhotoId(nextId)
+  const handleOpenPhoto = async (photo) => {
+    setSelectedPhoto(photo)
+    await Promise.all([fetchPhotoComments(photo._id), fetchPhotoLikes(photo._id)])
+  }
 
-    if (nextId) {
-      await Promise.all([fetchPhotoComments(photoId), fetchPhotoLikes(photoId)])
-    }
+  const handleClosePhoto = () => {
+    setSelectedPhoto(null)
+  }
+
+  const handleCommentChange = (photoId, value) => {
+    setCommentInput((prev) => ({
+      ...prev,
+      [photoId]: value
+    }))
   }
 
   const handleCommentSubmit = async (event, photoId) => {
     event.preventDefault()
     const text = (commentInput[photoId] || '').trim()
-
-    if (!text) {
-      return
-    }
+    if (!text) return
 
     try {
       await authFetch(`/comments/photo/${photoId}`, {
@@ -150,73 +167,31 @@ function AlbumPage() {
       ) : (
         <div className="photo-grid">
           {photos.map((photo) => (
-            <article key={photo._id} className="photo-card">
-              <img
-                src={getImageUrl(photo.imageUrl)}
-                alt={photo.title}
-              />
-
-              <div className="photo-info">
-                <strong>{photo.title}</strong>
-                <span>{photo.theme}</span>
-                <p>{photo.description}</p>
-
-                <div className="photo-actions">
-                  <button type="button" onClick={() => handleTogglePhotoDetails(photo._id)}>
-                    {activePhotoId === photo._id ? 'Ocultar detalhes' : 'Ver detalhes'}
-                  </button>
-                  <button type="button" onClick={() => handleLikePhoto(photo._id)}>
-                    Gostar
-                  </button>
-                  <span>{photoLikes[photo._id] ?? 0} likes</span>
-                  <span>{(photoComments[photo._id] || []).length} comentários</span>
-                </div>
-
-                {activePhotoId === photo._id && (
-                  <div className="comment-panel">
-                    <div className="comment-summary">
-                      <strong>{photoLikes[photo._id] ?? 0} likes</strong>
-                      <span>{(photoComments[photo._id] || []).length} comentários</span>
-                    </div>
-
-                    {(photoComments[photo._id] || []).length === 0 ? (
-                      <p className="empty-state">Sem comentários ainda.</p>
-                    ) : (
-                      <div className="comments-list">
-                        {photoComments[photo._id].map((comment) => (
-                          <div key={comment._id} className="comment-item">
-                            <strong>{comment.author?.name || 'Anónimo'}</strong>
-                            <p>{comment.text}</p>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    <form
-                      className="comment-form"
-                      onSubmit={(event) => handleCommentSubmit(event, photo._id)}
-                    >
-                      <input
-                        type="text"
-                        placeholder="Escreva um comentário..."
-                        value={commentInput[photo._id] || ''}
-                        onChange={(event) =>
-                          setCommentInput((prev) => ({
-                            ...prev,
-                            [photo._id]: event.target.value
-                          }))
-                        }
-                        required
-                      />
-                      <button type="submit">Enviar</button>
-                    </form>
-                  </div>
-                )}
-              </div>
-            </article>
+            <PhotoCard
+              key={photo._id}
+              photo={photo}
+              likesCount={photoLikes[photo._id] ?? 0}
+              commentsCount={(photoComments[photo._id] || []).length}
+              onOpen={handleOpenPhoto}
+              getImageUrl={getImageUrl}
+            />
           ))}
         </div>
       )}
+
+      <PhotoModal
+        photo={selectedPhoto}
+        isOpen={Boolean(selectedPhoto)}
+        onClose={handleClosePhoto}
+        user={user}
+        likesCount={selectedPhoto ? photoLikes[selectedPhoto._id] ?? 0 : 0}
+        comments={selectedPhoto ? photoComments[selectedPhoto._id] || [] : []}
+        commentValue={selectedPhoto ? commentInput[selectedPhoto._id] || '' : ''}
+        onCommentChange={handleCommentChange}
+        onCommentSubmit={handleCommentSubmit}
+        onLike={handleLikePhoto}
+        getImageUrl={getImageUrl}
+      />
 
       {status && <p className="status-message">{status}</p>}
     </main>
