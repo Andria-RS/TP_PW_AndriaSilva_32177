@@ -11,6 +11,7 @@ function AlbumPage() {
   const [photos, setPhotos] = useState([])
   const [photoComments, setPhotoComments] = useState({})
   const [photoLikes, setPhotoLikes] = useState({})
+  const [photoLikedByMe, setPhotoLikedByMe] = useState({})
   const [commentInput, setCommentInput] = useState({})
   const [selectedPhoto, setSelectedPhoto] = useState(null)
   const [status, setStatus] = useState('')
@@ -44,10 +45,18 @@ function AlbumPage() {
       const likesEntries = await Promise.all(
         data.photos.map(async (photo) => {
           try {
-            const response = await publicFetch(`/likes/photo/${photo._id}`)
-            return [photo._id, response.likes || 0]
+            const response = await authFetch(`/likes/photo/${photo._id}`)
+            return {
+              id: photo._id,
+              likes: response.likes || 0,
+              likedByMe: Boolean(response.likedByMe)
+            }
           } catch {
-            return [photo._id, 0]
+            return {
+              id: photo._id,
+              likes: 0,
+              likedByMe: false
+            }
           }
         })
       )
@@ -63,7 +72,8 @@ function AlbumPage() {
         })
       )
 
-      setPhotoLikes(Object.fromEntries(likesEntries))
+      setPhotoLikes(Object.fromEntries(likesEntries.map(({ id, likes }) => [id, likes])))
+      setPhotoLikedByMe(Object.fromEntries(likesEntries.map(({ id, likedByMe }) => [id, likedByMe])))
       setPhotoComments(Object.fromEntries(commentsEntries))
     } catch (error) {
       setStatus(error.message)
@@ -81,10 +91,12 @@ function AlbumPage() {
 
   const fetchPhotoLikes = async (photoId) => {
     try {
-      const response = await publicFetch(`/likes/photo/${photoId}`)
+      const response = await authFetch(`/likes/photo/${photoId}`)
       setPhotoLikes((prev) => ({ ...prev, [photoId]: response.likes || 0 }))
+      setPhotoLikedByMe((prev) => ({ ...prev, [photoId]: Boolean(response.likedByMe) }))
     } catch {
       setPhotoLikes((prev) => ({ ...prev, [photoId]: 0 }))
+      setPhotoLikedByMe((prev) => ({ ...prev, [photoId]: false }))
     }
   }
 
@@ -124,11 +136,13 @@ function AlbumPage() {
 
   const handleLikePhoto = async (photoId) => {
     try {
-      await authFetch(`/likes/photo/${photoId}`, {
+      const response = await authFetch(`/likes/photo/${photoId}`, {
         method: 'POST'
       })
-      await fetchPhotoLikes(photoId)
-      setStatus('Gostei registado')
+
+      setPhotoLikes((prev) => ({ ...prev, [photoId]: response.likes || 0 }))
+      setPhotoLikedByMe((prev) => ({ ...prev, [photoId]: Boolean(response.likedByMe) }))
+      setStatus(response.message || 'Gostei atualizado')
     } catch (error) {
       setStatus(error.message)
     }
@@ -171,6 +185,7 @@ function AlbumPage() {
               key={photo._id}
               photo={photo}
               likesCount={photoLikes[photo._id] ?? 0}
+              likedByMe={photoLikedByMe[photo._id] ?? false}
               commentsCount={(photoComments[photo._id] || []).length}
               onOpen={handleOpenPhoto}
               getImageUrl={getImageUrl}
@@ -185,6 +200,7 @@ function AlbumPage() {
         onClose={handleClosePhoto}
         user={user}
         likesCount={selectedPhoto ? photoLikes[selectedPhoto._id] ?? 0 : 0}
+        likedByMe={selectedPhoto ? photoLikedByMe[selectedPhoto._id] ?? false : false}
         comments={selectedPhoto ? photoComments[selectedPhoto._id] || [] : []}
         commentValue={selectedPhoto ? commentInput[selectedPhoto._id] || '' : ''}
         onCommentChange={handleCommentChange}

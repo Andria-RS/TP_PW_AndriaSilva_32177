@@ -5,6 +5,7 @@ import { ALLOWED_THEMES } from '../constants/themes.js'
 import PhotoCard from '../components/PhotoCard.jsx'
 import PhotoModal from '../components/PhotoModal.jsx'
 import CreateAlbumModal from '../components/CreateAlbumModal.jsx'
+import CreatePhotoModal from '../components/CreatePhotoModal.jsx'
 
 function HomePage() {
   const navigate = useNavigate()
@@ -16,15 +17,20 @@ function HomePage() {
   const [selectedAlbum, setSelectedAlbum] = useState('')
   const [photoComments, setPhotoComments] = useState({})
   const [photoLikes, setPhotoLikes] = useState({})
+  const [photoLikedByMe, setPhotoLikedByMe] = useState({})
   const [commentInput, setCommentInput] = useState({})
   const [selectedPhoto, setSelectedPhoto] = useState(null)
   const [isCreateAlbumOpen, setIsCreateAlbumOpen] = useState(false)
+  const [isAddPhotoOpen, setIsAddPhotoOpen] = useState(false)
 
   useEffect(() => {
-    fetchAlbums()
-    fetchPhotos()
     fetchCurrentUser()
+    fetchAlbums()
   }, [])
+
+  useEffect(() => {
+    fetchPhotos()
+  }, [user, themeFilter, selectedAlbum])
 
   const themeSuggestions = useMemo(() => {
     const themes = [...new Set(albums.map((album) => album.theme).filter(Boolean))]
@@ -57,11 +63,11 @@ function HomePage() {
     }
   }
 
-  const fetchPhotos = async (nextTheme = themeFilter, nextAlbum = selectedAlbum) => {
+  const fetchPhotos = async () => {
     try {
       const params = []
-      if (nextTheme) params.push(`theme=${encodeURIComponent(nextTheme)}`)
-      if (nextAlbum) params.push(`albumId=${encodeURIComponent(nextAlbum)}`)
+      if (themeFilter) params.push(`theme=${encodeURIComponent(themeFilter)}`)
+      if (selectedAlbum) params.push(`albumId=${encodeURIComponent(selectedAlbum)}`)
       const query = params.length ? `?${params.join('&')}` : ''
 
       const data = await publicFetch(`/photos${query}`)
@@ -70,10 +76,21 @@ function HomePage() {
       const likesEntries = await Promise.all(
         data.map(async (photo) => {
           try {
-            const response = await publicFetch(`/likes/photo/${photo._id}`)
-            return [photo._id, response.likes || 0]
+            const response = user
+              ? await authFetch(`/likes/photo/${photo._id}`)
+              : await publicFetch(`/likes/photo/${photo._id}`)
+
+            return {
+              id: photo._id,
+              likes: response.likes || 0,
+              likedByMe: Boolean(response.likedByMe)
+            }
           } catch {
-            return [photo._id, 0]
+            return {
+              id: photo._id,
+              likes: 0,
+              likedByMe: false
+            }
           }
         })
       )
@@ -89,7 +106,16 @@ function HomePage() {
         })
       )
 
-      setPhotoLikes(Object.fromEntries(likesEntries))
+      const likesMap = {}
+      const likedMap = {}
+
+      likesEntries.forEach(({ id, likes, likedByMe }) => {
+        likesMap[id] = likes
+        likedMap[id] = likedByMe
+      })
+
+      setPhotoLikes(likesMap)
+      setPhotoLikedByMe(likedMap)
       setPhotoComments(Object.fromEntries(commentsEntries))
     } catch (error) {
       setStatus(error.message)
@@ -107,10 +133,15 @@ function HomePage() {
 
   const fetchPhotoLikes = async (photoId) => {
     try {
-      const response = await publicFetch(`/likes/photo/${photoId}`)
+      const response = user
+        ? await authFetch(`/likes/photo/${photoId}`)
+        : await publicFetch(`/likes/photo/${photoId}`)
+
       setPhotoLikes((prev) => ({ ...prev, [photoId]: response.likes || 0 }))
+      setPhotoLikedByMe((prev) => ({ ...prev, [photoId]: Boolean(response.likedByMe) }))
     } catch {
       setPhotoLikes((prev) => ({ ...prev, [photoId]: 0 }))
+      setPhotoLikedByMe((prev) => ({ ...prev, [photoId]: false }))
     }
   }
 
@@ -150,11 +181,13 @@ function HomePage() {
 
   const handleLikePhoto = async (photoId) => {
     try {
-      await authFetch(`/likes/photo/${photoId}`, {
+      const response = await authFetch(`/likes/photo/${photoId}`, {
         method: 'POST'
       })
-      await fetchPhotoLikes(photoId)
-      setStatus('Gostei registado')
+
+      setPhotoLikes((prev) => ({ ...prev, [photoId]: response.likes || 0 }))
+      setPhotoLikedByMe((prev) => ({ ...prev, [photoId]: Boolean(response.likedByMe) }))
+      setStatus(response.message || 'Gostei atualizado')
     } catch (error) {
       setStatus(error.message)
     }
@@ -167,16 +200,9 @@ function HomePage() {
     navigate('/login')
   }
 
-  const handleThemeClick = async (theme) => {
-    setThemeFilter(theme)
-    setSelectedAlbum('')
-    await fetchPhotos(theme, '')
-  }
-
-  const clearFilters = async () => {
+  const clearFilters = () => {
     setThemeFilter('')
     setSelectedAlbum('')
-    await fetchPhotos('', '')
   }
 
   const handleCreateAlbum = async ({
@@ -208,6 +234,42 @@ function HomePage() {
       setStatus('Álbum criado')
       setIsCreateAlbumOpen(false)
       await fetchAlbums()
+    } catch (error) {
+      setStatus(error.message)
+    }
+  }
+
+  const handleAddPhoto = async ({
+    title,
+    description,
+    albumId,
+    theme,
+    isPublic,
+    photoFile,
+    imageUrl
+  }) => {
+    try {
+      const formData = new FormData()
+      formData.append('title', title)
+      formData.append('description', description)
+      formData.append('albumId', albumId)
+      formData.append('theme', theme)
+      formData.append('isPublic', String(isPublic))
+
+      if (photoFile) {
+        formData.append('image', photoFile)
+      } else if (imageUrl) {
+        formData.append('imageUrl', imageUrl)
+      }
+
+      await authFetch('/photos', {
+        method: 'POST',
+        body: formData
+      })
+
+      setStatus('Fotografia adicionada')
+      setIsAddPhotoOpen(false)
+      await fetchAlbums()
       await fetchPhotos()
     } catch (error) {
       setStatus(error.message)
@@ -232,11 +294,7 @@ function HomePage() {
           <div className="lumen-search-box">
             <select
               value={themeFilter}
-              onChange={async (e) => {
-                const nextTheme = e.target.value
-                setThemeFilter(nextTheme)
-                await fetchPhotos(nextTheme, selectedAlbum)
-              }}
+              onChange={(e) => setThemeFilter(e.target.value)}
             >
               <option value="">Todos os temas</option>
               {ALLOWED_THEMES.map((theme) => (
@@ -282,6 +340,16 @@ function HomePage() {
             >
               Criar álbum
             </button>
+
+            {user && (
+              <button
+                type="button"
+                className="button-link"
+                onClick={() => setIsAddPhotoOpen(true)}
+              >
+                Adicionar fotografia
+              </button>
+            )}
           </div>
         </div>
 
@@ -318,6 +386,7 @@ function HomePage() {
               key={photo._id}
               photo={photo}
               likesCount={photoLikes[photo._id] ?? 0}
+              likedByMe={photoLikedByMe[photo._id] ?? false}
               commentsCount={(photoComments[photo._id] || []).length}
               onOpen={handleOpenPhoto}
               getImageUrl={getImageUrl}
@@ -327,35 +396,13 @@ function HomePage() {
         </section>
       )}
 
-      {albums.length > 0 && (
-        <section className="lumen-album-filter">
-          <label>
-            Filtrar por álbum
-            <select
-              value={selectedAlbum}
-              onChange={async (e) => {
-                const nextAlbum = e.target.value
-                setSelectedAlbum(nextAlbum)
-                await fetchPhotos(themeFilter, nextAlbum)
-              }}
-            >
-              <option value="">Todos os álbuns</option>
-              {albums.map((album) => (
-                <option key={album._id} value={album._id}>
-                  {album.name}
-                </option>
-              ))}
-            </select>
-          </label>
-        </section>
-      )}
-
       <PhotoModal
         photo={selectedPhoto}
         isOpen={Boolean(selectedPhoto)}
         onClose={handleClosePhoto}
         user={user}
         likesCount={selectedPhoto ? photoLikes[selectedPhoto._id] ?? 0 : 0}
+        likedByMe={selectedPhoto ? photoLikedByMe[selectedPhoto._id] ?? false : false}
         comments={selectedPhoto ? photoComments[selectedPhoto._id] || [] : []}
         commentValue={selectedPhoto ? commentInput[selectedPhoto._id] || '' : ''}
         onCommentChange={handleCommentChange}
@@ -368,6 +415,13 @@ function HomePage() {
         isOpen={isCreateAlbumOpen}
         onClose={() => setIsCreateAlbumOpen(false)}
         onSubmit={handleCreateAlbum}
+      />
+
+      <CreatePhotoModal
+        isOpen={isAddPhotoOpen}
+        onClose={() => setIsAddPhotoOpen(false)}
+        onSubmit={handleAddPhoto}
+        albums={albums}
       />
 
       {status && <p className="status-message home-status">{status}</p>}
