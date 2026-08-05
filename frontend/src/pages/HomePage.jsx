@@ -4,6 +4,7 @@ import { authFetch, publicFetch } from '../services/api.js'
 import { ALLOWED_THEMES } from '../constants/themes.js'
 import PhotoCard from '../components/PhotoCard.jsx'
 import PhotoModal from '../components/PhotoModal.jsx'
+import CreateAlbumModal from '../components/CreateAlbumModal.jsx'
 
 function HomePage() {
   const navigate = useNavigate()
@@ -17,6 +18,7 @@ function HomePage() {
   const [photoLikes, setPhotoLikes] = useState({})
   const [commentInput, setCommentInput] = useState({})
   const [selectedPhoto, setSelectedPhoto] = useState(null)
+  const [isCreateAlbumOpen, setIsCreateAlbumOpen] = useState(false)
 
   useEffect(() => {
     fetchAlbums()
@@ -177,6 +179,41 @@ function HomePage() {
     await fetchPhotos('', '')
   }
 
+  const handleCreateAlbum = async ({
+    name,
+    description,
+    theme,
+    isPublic,
+    coverImageFile,
+    coverImageUrl
+  }) => {
+    try {
+      const formData = new FormData()
+      formData.append('name', name)
+      formData.append('description', description)
+      formData.append('theme', theme)
+      formData.append('isPublic', String(isPublic))
+
+      if (coverImageFile) {
+        formData.append('coverImage', coverImageFile)
+      } else if (coverImageUrl) {
+        formData.append('coverImageUrl', coverImageUrl)
+      }
+
+      await authFetch('/albums', {
+        method: 'POST',
+        body: formData
+      })
+
+      setStatus('Álbum criado')
+      setIsCreateAlbumOpen(false)
+      await fetchAlbums()
+      await fetchPhotos()
+    } catch (error) {
+      setStatus(error.message)
+    }
+  }
+
   return (
     <main className="app-shell lumen-home">
       <header className="lumen-navbar">
@@ -216,10 +253,7 @@ function HomePage() {
               <button type="button" onClick={handleLogout}>Sair</button>
             </>
           ) : (
-            <>
-              <Link className="button-link" to="/login">Entrar</Link>
-              <Link className="hero-main-btn" to="/register">Registar</Link>
-            </>
+            <Link className="button-link" to="/login">Entrar</Link>
           )}
         </div>
       </header>
@@ -233,12 +267,21 @@ function HomePage() {
           </p>
 
           <div className="lumen-hero-actions">
-            <button type="button" className="hero-main-btn" onClick={() => fetchPhotos()}>
+            <button
+              type="button"
+              className="hero-main-btn"
+              onClick={() => fetchPhotos()}
+            >
               Explorar fotografias
             </button>
-            <Link className="button-link" to={user ? '/profile' : '/register'}>
-              {user ? 'Ir para o perfil' : 'Criar conta'}
-            </Link>
+
+            <button
+              type="button"
+              className="button-link"
+              onClick={() => setIsCreateAlbumOpen(true)}
+            >
+              Criar álbum
+            </button>
           </div>
         </div>
 
@@ -344,6 +387,12 @@ function HomePage() {
         onCommentSubmit={handleCommentSubmit}
         onLike={handleLikePhoto}
         getImageUrl={getImageUrl}
+      />
+
+      <CreateAlbumModal
+        isOpen={isCreateAlbumOpen}
+        onClose={() => setIsCreateAlbumOpen(false)}
+        onSubmit={handleCreateAlbum}
       />
 
       {status && <p className="status-message home-status">{status}</p>}
