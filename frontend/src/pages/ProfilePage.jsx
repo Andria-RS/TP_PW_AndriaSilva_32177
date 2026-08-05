@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { authFetch } from '../services/api.js'
-import { ALLOWED_THEMES } from '../constants/themes.js'
 import CreateAlbumModal from '../components/CreateAlbumModal.jsx'
+import CreatePhotoModal from '../components/CreatePhotoModal.jsx'
 
 function ProfilePage() {
   const navigate = useNavigate()
@@ -11,6 +11,7 @@ function ProfilePage() {
   const [photos, setPhotos] = useState([])
   const [status, setStatus] = useState('')
   const [isCreateAlbumOpen, setIsCreateAlbumOpen] = useState(false)
+  const [isAddPhotoOpen, setIsAddPhotoOpen] = useState(false)
 
   useEffect(() => {
     fetchProfileData()
@@ -44,7 +45,14 @@ function ProfilePage() {
     navigate('/login')
   }
 
-  const handleCreateAlbum = async ({ name, description, theme, isPublic, coverImageFile, coverImageUrl }) => {
+  const handleCreateAlbum = async ({
+    name,
+    description,
+    theme,
+    isPublic,
+    coverImageFile,
+    coverImageUrl
+  }) => {
     try {
       const formData = new FormData()
       formData.append('name', name)
@@ -65,6 +73,38 @@ function ProfilePage() {
 
       setStatus('Álbum criado')
       setIsCreateAlbumOpen(false)
+      fetchProfileData()
+    } catch (error) {
+      setStatus(error.message)
+    }
+  }
+
+  const handleAddPhoto = async ({
+    title,
+    description,
+    albumId,
+    photoFile,
+    imageUrl
+  }) => {
+    try {
+      const formData = new FormData()
+      formData.append('title', title)
+      formData.append('description', description)
+      formData.append('albumId', albumId)
+
+      if (photoFile) {
+        formData.append('image', photoFile)
+      } else if (imageUrl) {
+        formData.append('imageUrl', imageUrl)
+      }
+
+      await authFetch('/photos', {
+        method: 'POST',
+        body: formData
+      })
+
+      setStatus('Fotografia adicionada')
+      setIsAddPhotoOpen(false)
       fetchProfileData()
     } catch (error) {
       setStatus(error.message)
@@ -105,9 +145,6 @@ function ProfilePage() {
         </div>
 
         <div className="header-actions">
-          <button type="button" className="hero-main-btn" onClick={() => setIsCreateAlbumOpen(true)}>
-            Criar álbum
-          </button>
           <Link className="button-link" to="/">Voltar à galeria</Link>
           <button type="button" onClick={handleLogout}>Logout</button>
         </div>
@@ -117,6 +154,14 @@ function ProfilePage() {
         <article className="photo-panel">
           <div className="panel-header">
             <h2>Os meus álbuns</h2>
+
+            <button
+              type="button"
+              className="hero-main-btn"
+              onClick={() => setIsCreateAlbumOpen(true)}
+            >
+              Criar álbum
+            </button>
           </div>
 
           {albums.length === 0 ? (
@@ -156,7 +201,17 @@ function ProfilePage() {
         </article>
 
         <aside className="form-panel">
-          <h2>As minhas fotos</h2>
+          <div className="panel-header">
+            <h2>As minhas fotos</h2>
+
+            <button
+              type="button"
+              className="hero-main-btn"
+              onClick={() => setIsAddPhotoOpen(true)}
+            >
+              Publicar foto
+            </button>
+          </div>
 
           {photos.length === 0 ? (
             <div className="empty-state">Ainda não adicionou fotos.</div>
@@ -185,6 +240,13 @@ function ProfilePage() {
         isOpen={isCreateAlbumOpen}
         onClose={() => setIsCreateAlbumOpen(false)}
         onSubmit={handleCreateAlbum}
+      />
+
+      <CreatePhotoModal
+        isOpen={isAddPhotoOpen}
+        onClose={() => setIsAddPhotoOpen(false)}
+        onSubmit={handleAddPhoto}
+        albums={albums}
       />
     </main>
   )
