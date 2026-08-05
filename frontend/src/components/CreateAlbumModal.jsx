@@ -1,29 +1,37 @@
 import { useEffect, useState } from 'react'
 import { ALLOWED_THEMES } from '../constants/themes.js'
 
+const defaultInitialValues = {
+  name: '',
+  description: '',
+  theme: '',
+  isPublic: true,
+  coverImageUrl: ''
+}
+
 function CreateAlbumModal({
   isOpen,
   onClose,
   onSubmit,
-  initialValues = {
-    name: '',
-    description: '',
-    theme: '',
-    isPublic: true,
-    coverImageUrl: ''
-  }
+  initialValues = defaultInitialValues
 }) {
-  const [form, setForm] = useState(initialValues)
+  const [form, setForm] = useState(defaultInitialValues)
   const [coverImageFile, setCoverImageFile] = useState(null)
   const [imagePreview, setImagePreview] = useState('')
 
   useEffect(() => {
-    if (isOpen) {
-      setForm(initialValues)
-      setCoverImageFile(null)
-      setImagePreview(initialValues.coverImageUrl || '')
-    }
-  }, [isOpen, initialValues])
+    if (!isOpen) return
+
+    setForm({
+      name: initialValues?.name ?? '',
+      description: initialValues?.description ?? '',
+      theme: initialValues?.theme ?? '',
+      isPublic: typeof initialValues?.isPublic === 'boolean' ? initialValues.isPublic : true,
+      coverImageUrl: initialValues?.coverImageUrl ?? ''
+    })
+    setCoverImageFile(null)
+    setImagePreview(initialValues?.coverImageUrl || '')
+  }, [isOpen])
 
   useEffect(() => {
     if (!coverImageFile) return
@@ -69,23 +77,23 @@ function CreateAlbumModal({
   }
 
   return (
-    <div className="album-modal-backdrop" onClick={onClose}>
-      <div className="album-modal" onClick={(event) => event.stopPropagation()}>
-        <button type="button" className="album-modal-close" onClick={onClose}>
+    <div className="album-create-backdrop">
+      <div className="album-create-modal" role="dialog" aria-modal="true" aria-label="Criar novo álbum">
+        <button type="button" className="album-create-close" onClick={onClose}>
           ✕
         </button>
 
-        <div className="album-modal-layout">
-          <div className="album-modal-form-side">
-            <span className="album-modal-kicker">Criar novo álbum</span>
+        <div className="album-create-layout">
+          <div className="album-create-form-side">
+            <span className="album-create-kicker">Criar novo álbum</span>
             <h2>Organiza as tuas memórias num só lugar</h2>
             <p>
               Dá um nome ao álbum, escolhe um tema e define se queres mantê-lo
               público ou privado.
             </p>
 
-            <form className="album-modal-form" onSubmit={handleSubmit}>
-              <label>
+            <form className="album-create-form" onSubmit={handleSubmit}>
+              <label className="album-create-field">
                 Nome do álbum
                 <input
                   type="text"
@@ -96,7 +104,7 @@ function CreateAlbumModal({
                 />
               </label>
 
-              <label>
+              <label className="album-create-field">
                 Descrição
                 <textarea
                   value={form.description}
@@ -105,7 +113,7 @@ function CreateAlbumModal({
                 />
               </label>
 
-              <label>
+              <label className="album-create-field">
                 Tema
                 <select
                   value={form.theme}
@@ -121,61 +129,63 @@ function CreateAlbumModal({
                 </select>
               </label>
 
-              <div className="album-modal-visibility">
-                <span>Visibilidade</span>
+              <fieldset className="album-create-fieldset">
+                <legend>Visibilidade</legend>
 
-                <label className="radio-option">
+                <label className="album-create-radio-option">
                   <input
                     type="radio"
-                    name="isPublic"
+                    name="visibility"
+                    value="public"
                     checked={form.isPublic === true}
                     onChange={() => handleChange('isPublic', true)}
                   />
                   <div>
                     <strong>Público</strong>
-                    <small>Visível para qualquer pessoa</small>
+                    <span>Aberto a todos os utilizadores.</span>
                   </div>
                 </label>
 
-                <label className="radio-option">
+                <label className="album-create-radio-option">
                   <input
                     type="radio"
-                    name="isPublic"
+                    name="visibility"
+                    value="private"
                     checked={form.isPublic === false}
                     onChange={() => handleChange('isPublic', false)}
                   />
                   <div>
                     <strong>Privado</strong>
-                    <small>Apenas tu podes ver este álbum</small>
+                    <span>Apenas tu vês este álbum.</span>
                   </div>
                 </label>
-              </div>
+              </fieldset>
 
-              <div className="album-modal-actions">
-                <button type="button" className="album-modal-secondary" onClick={onClose}>
+              <div className="album-create-actions">
+                <button type="button" className="album-create-secondary" onClick={onClose}>
                   Cancelar
                 </button>
-                <button type="submit" className="album-modal-primary">
+                <button type="submit" className="album-create-primary">
                   Criar álbum
                 </button>
               </div>
             </form>
           </div>
 
-          <div className="album-modal-preview-side">
-            <div className="album-modal-preview-card">
-              <div className="album-modal-preview-label">Imagem de capa</div>
+          <div className="album-create-preview-side">
+            <div className="album-create-preview-card">
+              <div className="album-create-preview-label">Imagem de capa</div>
 
               {imagePreview ? (
                 <img src={imagePreview} alt="Pré-visualização da capa do álbum" />
               ) : (
-                <div className="album-modal-preview-placeholder">
+                <div className="album-create-preview-placeholder">
                   <span>Pré-visualização da imagem</span>
                 </div>
               )}
 
-              <div className="album-modal-upload-row">
-                <label className="album-modal-upload-btn">
+              <div className="album-create-upload-row">
+                <label className="album-create-upload-btn">
                   <input
                     type="file"
                     accept="image/*"
@@ -186,7 +196,7 @@ function CreateAlbumModal({
               </div>
 
               {!coverImageFile && (
-                <label className="album-modal-url">
+                <label className="album-create-url">
                   Ou usa um URL da capa
                   <input
                     type="url"

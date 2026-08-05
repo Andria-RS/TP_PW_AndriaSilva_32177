@@ -270,7 +270,7 @@ function HomePage() {
             <button
               type="button"
               className="hero-main-btn"
-              onClick={() => fetchPhotos()}
+              onClick={() => navigate('/explore')}
             >
               Explorar fotografias
             </button>
@@ -326,31 +326,6 @@ function HomePage() {
           ))}
         </section>
       )}
-
-      <section className="lumen-section-header themes-header">
-        <h2>Explora por tema</h2>
-      </section>
-
-      <section className="theme-chip-row lumen-theme-row">
-        <button
-          type="button"
-          className={!themeFilter ? 'theme-chip active' : 'theme-chip'}
-          onClick={clearFilters}
-        >
-          Todos
-        </button>
-
-        {ALLOWED_THEMES.filter((theme) => themeSuggestions.includes(theme)).map((theme) => (
-          <button
-            key={theme}
-            type="button"
-            className={themeFilter === theme ? 'theme-chip active' : 'theme-chip'}
-            onClick={() => handleThemeClick(theme)}
-          >
-            {theme}
-          </button>
-        ))}
-      </section>
 
       {albums.length > 0 && (
         <section className="lumen-album-filter">
