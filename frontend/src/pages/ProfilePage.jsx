@@ -3,27 +3,45 @@ import { Link, useNavigate } from 'react-router-dom'
 import { authFetch } from '../services/api.js'
 import { ALLOWED_THEMES } from '../constants/themes.js'
 
+const initialAlbumForm = {
+  name: '',
+  description: '',
+  theme: '',
+  isPublic: true,
+  coverImageUrl: ''
+}
+
+const initialEditAlbumForm = {
+  name: '',
+  description: '',
+  theme: '',
+  isPublic: true,
+  coverImageUrl: ''
+}
+
+const initialPhotoForm = {
+  title: '',
+  imageUrl: '',
+  description: '',
+  albumId: '',
+  theme: ''
+}
+
 function ProfilePage() {
   const navigate = useNavigate()
   const [user, setUser] = useState(null)
   const [albums, setAlbums] = useState([])
   const [photos, setPhotos] = useState([])
-  const [albumForm, setAlbumForm] = useState({
-    name: '',
-    description: '',
-    theme: '',
-    isPublic: true,
-    coverImageUrl: ''
-  })
-  const [photoForm, setPhotoForm] = useState({
-    title: '',
-    imageUrl: '',
-    description: '',
-    albumId: '',
-    theme: ''
-  })
+  const [albumForm, setAlbumForm] = useState(initialAlbumForm)
+  const [photoForm, setPhotoForm] = useState(initialPhotoForm)
   const [imageFile, setImageFile] = useState(null)
   const [coverImageFile, setCoverImageFile] = useState(null)
+
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [editingAlbumId, setEditingAlbumId] = useState(null)
+  const [editAlbumForm, setEditAlbumForm] = useState(initialEditAlbumForm)
+  const [editCoverImageFile, setEditCoverImageFile] = useState(null)
+
   const [status, setStatus] = useState('')
 
   useEffect(() => {
@@ -43,12 +61,64 @@ function ProfilePage() {
         authFetch('/albums/mine'),
         authFetch('/photos/mine')
       ])
+
       setUser(profile.user)
       setAlbums(userAlbums)
       setPhotos(allPhotos)
     } catch (error) {
       setStatus(error.message)
       navigate('/login')
+    }
+  }
+
+  const resetAlbumForm = () => {
+    setAlbumForm(initialAlbumForm)
+    setCoverImageFile(null)
+  }
+
+  const resetPhotoForm = () => {
+    setPhotoForm(initialPhotoForm)
+    setImageFile(null)
+  }
+
+  const openEditAlbumModal = (album) => {
+    setEditingAlbumId(album._id)
+    setEditAlbumForm({
+      name: album.name || '',
+      description: album.description || '',
+      theme: album.theme || '',
+      isPublic: Boolean(album.isPublic),
+      coverImageUrl: album.coverImageUrl || ''
+    })
+    setEditCoverImageFile(null)
+    setIsEditModalOpen(true)
+    setStatus('')
+  }
+
+  const closeEditAlbumModal = () => {
+    setIsEditModalOpen(false)
+    setEditingAlbumId(null)
+    setEditAlbumForm(initialEditAlbumForm)
+    setEditCoverImageFile(null)
+  }
+
+  const handleDeleteAlbum = async (albumId) => {
+    const confirmed = window.confirm('Tens a certeza que queres apagar este álbum?')
+    if (!confirmed) return
+
+    try {
+      await authFetch(`/albums/${albumId}`, {
+        method: 'DELETE'
+      })
+
+      if (editingAlbumId === albumId) {
+        closeEditAlbumModal()
+      }
+
+      setStatus('Álbum apagado')
+      fetchProfileData()
+    } catch (error) {
+      setStatus(error.message)
     }
   }
 
@@ -77,15 +147,40 @@ function ProfilePage() {
         method: 'POST',
         body: formData
       })
-      setAlbumForm({
-        name: '',
-        description: '',
-        theme: '',
-        isPublic: true,
-        coverImageUrl: ''
-      })
-      setCoverImageFile(null)
+
+      resetAlbumForm()
       setStatus('Álbum criado')
+      fetchProfileData()
+    } catch (error) {
+      setStatus(error.message)
+    }
+  }
+
+  const handleEditAlbumSubmit = async (event) => {
+    event.preventDefault()
+
+    if (!editingAlbumId) return
+
+    const formData = new FormData()
+    formData.append('name', editAlbumForm.name)
+    formData.append('description', editAlbumForm.description)
+    formData.append('theme', editAlbumForm.theme)
+    formData.append('isPublic', String(editAlbumForm.isPublic))
+
+    if (editCoverImageFile) {
+      formData.append('coverImage', editCoverImageFile)
+    } else if (editAlbumForm.coverImageUrl) {
+      formData.append('coverImageUrl', editAlbumForm.coverImageUrl)
+    }
+
+    try {
+      await authFetch(`/albums/${editingAlbumId}`, {
+        method: 'PUT',
+        body: formData
+      })
+
+      closeEditAlbumModal()
+      setStatus('Álbum atualizado')
       fetchProfileData()
     } catch (error) {
       setStatus(error.message)
@@ -117,14 +212,8 @@ function ProfilePage() {
         method: 'POST',
         body: formData
       })
-      setPhotoForm({
-        title: '',
-        imageUrl: '',
-        description: '',
-        albumId: '',
-        theme: ''
-      })
-      setImageFile(null)
+
+      resetPhotoForm()
       setStatus('Foto adicionada')
       fetchProfileData()
     } catch (error) {
@@ -153,6 +242,7 @@ function ProfilePage() {
           <h1>Bem-vindo, {user.name}</h1>
           <p>Gere os teus álbuns e partilha as tuas fotos.</p>
         </div>
+
         <div className="header-actions">
           <Link className="button-link" to="/">Voltar à galeria</Link>
           <button type="button" onClick={handleLogout}>Logout</button>
@@ -188,6 +278,19 @@ function ProfilePage() {
                     <span>{album.theme}</span>
                     <p>{album.description}</p>
                     <small>{album.isPublic ? 'Público' : 'Privado'}</small>
+
+                    <div className="album-card-actions">
+                      <button type="button" onClick={() => openEditAlbumModal(album)}>
+                        Editar
+                      </button>
+                      <button
+                        type="button"
+                        className="danger-button"
+                        onClick={() => handleDeleteAlbum(album._id)}
+                      >
+                        Apagar
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -197,6 +300,7 @@ function ProfilePage() {
 
         <aside className="form-panel">
           <h2>Criar álbum</h2>
+
           <form onSubmit={handleAlbumSubmit}>
             <label>
               Nome do álbum
@@ -269,6 +373,7 @@ function ProfilePage() {
           </form>
 
           <h2>Adicionar foto</h2>
+
           <form onSubmit={handlePhotoSubmit}>
             <label>
               Título
@@ -342,6 +447,7 @@ function ProfilePage() {
           </form>
 
           <h2>As minhas fotos</h2>
+
           {photos.length === 0 ? (
             <div className="empty-state">Ainda não adicionou fotos.</div>
           ) : (
@@ -364,6 +470,102 @@ function ProfilePage() {
           {status && <p className="status-message">{status}</p>}
         </aside>
       </section>
+
+      {isEditModalOpen && (
+        <div className="photo-modal-backdrop" onClick={closeEditAlbumModal}>
+          <div className="album-edit-modal" onClick={(event) => event.stopPropagation()}>
+            <button
+              type="button"
+              className="photo-modal-close"
+              onClick={closeEditAlbumModal}
+            >
+              ✕
+            </button>
+
+            <h2>Editar álbum</h2>
+
+            <form onSubmit={handleEditAlbumSubmit} className="album-edit-form">
+              <label>
+                Nome do álbum
+                <input
+                  name="name"
+                  value={editAlbumForm.name}
+                  onChange={(e) => setEditAlbumForm({ ...editAlbumForm, name: e.target.value })}
+                  required
+                />
+              </label>
+
+              <label>
+                Tema
+                <select
+                  name="theme"
+                  value={editAlbumForm.theme}
+                  onChange={(e) => setEditAlbumForm({ ...editAlbumForm, theme: e.target.value })}
+                  required
+                >
+                  <option value="">Seleciona um tema</option>
+                  {ALLOWED_THEMES.map((theme) => (
+                    <option key={theme} value={theme}>
+                      {theme}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label>
+                Descrição
+                <textarea
+                  name="description"
+                  value={editAlbumForm.description}
+                  onChange={(e) =>
+                    setEditAlbumForm({ ...editAlbumForm, description: e.target.value })
+                  }
+                />
+              </label>
+
+              <label>
+                Nova capa do álbum
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => setEditCoverImageFile(e.target.files?.[0] || null)}
+                />
+              </label>
+
+              <label>
+                Ou introduz uma URL da capa
+                <input
+                  name="coverImageUrl"
+                  value={editAlbumForm.coverImageUrl}
+                  onChange={(e) =>
+                    setEditAlbumForm({ ...editAlbumForm, coverImageUrl: e.target.value })
+                  }
+                />
+              </label>
+
+              <label>
+                Público?
+                <select
+                  value={String(editAlbumForm.isPublic)}
+                  onChange={(e) =>
+                    setEditAlbumForm({ ...editAlbumForm, isPublic: e.target.value === 'true' })
+                  }
+                >
+                  <option value="true">Sim</option>
+                  <option value="false">Não</option>
+                </select>
+              </label>
+
+              <div className="form-actions">
+                <button type="submit">Guardar alterações</button>
+                <button type="button" className="button-link" onClick={closeEditAlbumModal}>
+                  Cancelar
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </main>
   )
 }
