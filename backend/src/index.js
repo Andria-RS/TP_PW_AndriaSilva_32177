@@ -42,13 +42,13 @@ const startServer = async () => {
   try {
     await mongoose.connect(MONGO_URI)
 
-    console.log('MongoDB connected')
+    console.log('MongoDB conetado')
 
     app.listen(PORT, () => {
       console.log(`Backend running on http://localhost:${PORT}`)
     })
   } catch (error) {
-    console.error('Database connection failed:', error)
+    console.error('Conexão à base de dados falhou:', error)
     process.exit(1)
   }
 }
