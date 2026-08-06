@@ -172,7 +172,7 @@ function AlbumPage() {
         )}
 
         <Link className="button-link" to="/">
-          Voltar à galeria
+          Voltar à página principal
         </Link>
       </div>
 

@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { authFetch, publicFetch } from '../services/api.js'
-import { ALLOWED_THEMES } from '../constants/themes.js'
 import PhotoCard from '../components/PhotoCard.jsx'
 import PhotoModal from '../components/PhotoModal.jsx'
 import CreateAlbumModal from '../components/CreateAlbumModal.jsx'
 import CreatePhotoModal from '../components/CreatePhotoModal.jsx'
+import Navbar from '../components/Navbar.jsx'
 
 function HomePage() {
   const navigate = useNavigate()
@@ -36,7 +36,9 @@ function HomePage() {
   const featuredPhoto = photos[0] || null
 
   const getImageUrl = (imageUrl) => {
-    if (!imageUrl) return ''
+    if (!imageUrl) {
+      return ''
+    }
 
     if (imageUrl.startsWith('http')) {
       return imageUrl
@@ -68,14 +70,21 @@ function HomePage() {
       const params = []
 
       if (themeFilter) {
-        params.push(`theme=${encodeURIComponent(themeFilter)}`)
+        params.push(
+          `theme=${encodeURIComponent(themeFilter)}`
+        )
       }
 
       if (selectedAlbum) {
-        params.push(`albumId=${encodeURIComponent(selectedAlbum)}`)
+        params.push(
+          `albumId=${encodeURIComponent(selectedAlbum)}`
+        )
       }
 
-      const query = params.length ? `?${params.join('&')}` : ''
+      const query = params.length
+        ? `?${params.join('&')}`
+        : ''
+
       const data = await publicFetch(`/photos${query}`)
 
       setPhotos(data)
@@ -119,14 +128,18 @@ function HomePage() {
       const likesMap = {}
       const likedMap = {}
 
-      likesEntries.forEach(({ id, likes, likedByMe }) => {
-        likesMap[id] = likes
-        likedMap[id] = likedByMe
-      })
+      likesEntries.forEach(
+        ({ id, likes, likedByMe }) => {
+          likesMap[id] = likes
+          likedMap[id] = likedByMe
+        }
+      )
 
       setPhotoLikes(likesMap)
       setPhotoLikedByMe(likedMap)
-      setPhotoComments(Object.fromEntries(commentsEntries))
+      setPhotoComments(
+        Object.fromEntries(commentsEntries)
+      )
     } catch (error) {
       setStatus(error.message)
     }
@@ -134,7 +147,9 @@ function HomePage() {
 
   const fetchPhotoComments = async (photoId) => {
     try {
-      const data = await publicFetch(`/comments/photo/${photoId}`)
+      const data = await publicFetch(
+        `/comments/photo/${photoId}`
+      )
 
       setPhotoComments((previous) => ({
         ...previous,
@@ -199,9 +214,13 @@ function HomePage() {
   const handleCommentSubmit = async (event, photoId) => {
     event.preventDefault()
 
-    const text = (commentInput[photoId] || '').trim()
+    const text = (
+      commentInput[photoId] || ''
+    ).trim()
 
-    if (!text) return
+    if (!text) {
+      return
+    }
 
     try {
       await authFetch(`/comments/photo/${photoId}`, {
@@ -221,11 +240,49 @@ function HomePage() {
     }
   }
 
+  const handleEditComment = async (commentId, text) => {
+    try {
+      await authFetch(`/comments/${commentId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ text })
+      })
+
+      if (selectedPhoto) {
+        await fetchPhotoComments(selectedPhoto._id)
+      }
+
+      setStatus('Comentário atualizado')
+    } catch (error) {
+      setStatus(error.message)
+      throw error
+    }
+  }
+
+  const handleDeleteComment = async (commentId) => {
+    try {
+      await authFetch(`/comments/${commentId}`, {
+        method: 'DELETE'
+      })
+
+      if (selectedPhoto) {
+        await fetchPhotoComments(selectedPhoto._id)
+      }
+
+      setStatus('Comentário apagado')
+    } catch (error) {
+      setStatus(error.message)
+      throw error
+    }
+  }
+
   const handleLikePhoto = async (photoId) => {
     try {
-      const response = await authFetch(`/likes/photo/${photoId}`, {
-        method: 'POST'
-      })
+      const response = await authFetch(
+        `/likes/photo/${photoId}`,
+        {
+          method: 'POST'
+        }
+      )
 
       setPhotoLikes((previous) => ({
         ...previous,
@@ -237,22 +294,12 @@ function HomePage() {
         [photoId]: Boolean(response.likedByMe)
       }))
 
-      setStatus(response.message || 'Gostei atualizado')
+      setStatus(
+        response.message || 'Gostei atualizado'
+      )
     } catch (error) {
       setStatus(error.message)
     }
-  }
-
-  const handleLogout = () => {
-    localStorage.removeItem('token')
-    setUser(null)
-    setStatus('Sessão terminada')
-    navigate('/login')
-  }
-
-  const clearFilters = () => {
-    setThemeFilter('')
-    setSelectedAlbum('')
   }
 
   const handleCreateAlbum = async ({
@@ -267,14 +314,26 @@ function HomePage() {
       const formData = new FormData()
 
       formData.append('name', name)
-      formData.append('description', description || '')
+      formData.append(
+        'description',
+        description || ''
+      )
       formData.append('theme', theme)
-      formData.append('isPublic', String(isPublic))
+      formData.append(
+        'isPublic',
+        String(isPublic)
+      )
 
       if (coverImageFile) {
-        formData.append('coverImage', coverImageFile)
+        formData.append(
+          'coverImage',
+          coverImageFile
+        )
       } else if (coverImageUrl) {
-        formData.append('coverImageUrl', coverImageUrl)
+        formData.append(
+          'coverImageUrl',
+          coverImageUrl
+        )
       }
 
       await authFetch('/albums', {
@@ -304,10 +363,22 @@ function HomePage() {
       const formData = new FormData()
 
       formData.append('title', title)
-      formData.append('description', description || '')
-      formData.append('albumId', albumId)
-      formData.append('theme', theme)
-      formData.append('isPublic', String(isPublic))
+      formData.append(
+        'description',
+        description || ''
+      )
+      formData.append(
+        'albumId',
+        albumId || ''
+      )
+      formData.append(
+        'theme',
+        theme || ''
+      )
+      formData.append(
+        'isPublic',
+        String(isPublic)
+      )
 
       if (photoFile) {
         formData.append('image', photoFile)
@@ -332,72 +403,27 @@ function HomePage() {
 
   return (
     <main className="app-shell lumen-home">
-      <header className="lumen-navbar">
-        <div className="lumen-logo">
-          <div className="lumen-logo-mark">◎</div>
-          <span>LUMEN</span>
-        </div>
-
-        <nav className="lumen-nav-links">
-          <Link to="/explore">Explorar</Link>
-
-          <button type="button" onClick={clearFilters}>
-            Álbuns
-          </button>
-        </nav>
-
-        <div className="lumen-nav-actions">
-          <div className="lumen-search-box">
-            <select
-              value={themeFilter}
-              onChange={(event) => setThemeFilter(event.target.value)}
-            >
-              <option value="">Todos os temas</option>
-
-              {ALLOWED_THEMES.map((theme) => (
-                <option key={theme} value={theme}>
-                  {theme}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {user ? (
-            <>
-              <Link className="button-link" to="/profile">
-                Perfil
-              </Link>
-
-              <button
-                type="button"
-                className="button-link"
-                onClick={handleLogout}
-              >
-                Sair
-              </button>
-            </>
-          ) : (
-            <Link className="button-link" to="/login">
-              Entrar
-            </Link>
-          )}
-        </div>
-      </header>
+      <Navbar />
 
       <section className="lumen-hero">
         <div className="lumen-hero-copy">
-          <h1>Descobre o mundo através de outras lentes</h1>
+          <h1>
+            Descobre o mundo através de outras lentes
+          </h1>
 
           <p>
-            Explora fotografias, encontra novas perspetivas e partilha os teus
-            melhores momentos na Lumen.
+            Explora fotografias, encontra novas
+            perspetivas e partilha os teus melhores
+            momentos na Lumen.
           </p>
 
           <div className="lumen-hero-actions">
             <button
               type="button"
               className="button-link"
-              onClick={() => setIsCreateAlbumOpen(true)}
+              onClick={() =>
+                setIsCreateAlbumOpen(true)
+              }
             >
               Criar álbum
             </button>
@@ -406,9 +432,11 @@ function HomePage() {
               <button
                 type="button"
                 className="button-link"
-                onClick={() => setIsAddPhotoOpen(true)}
+                onClick={() =>
+                  setIsAddPhotoOpen(true)
+                }
               >
-                Adicionar fotografia
+                Publicar fotografia
               </button>
             )}
           </div>
@@ -417,16 +445,21 @@ function HomePage() {
         <div className="lumen-hero-image-card">
           {featuredPhoto?.imageUrl ? (
             <img
-              src={getImageUrl(featuredPhoto.imageUrl)}
+              src={getImageUrl(
+                featuredPhoto.imageUrl
+              )}
               alt={featuredPhoto.title}
             />
           ) : (
             <div className="lumen-hero-placeholder">
               <div>
-                <strong>Sem fotografia em destaque</strong>
+                <strong>
+                  Sem fotografia em destaque
+                </strong>
 
                 <p>
-                  Adiciona fotos públicas para dar vida à homepage da Lumen.
+                  Adiciona fotos públicas para dar
+                  vida à homepage da Lumen.
                 </p>
               </div>
             </div>
@@ -456,9 +489,16 @@ function HomePage() {
             <PhotoCard
               key={photo._id}
               photo={photo}
-              likesCount={photoLikes[photo._id] ?? 0}
-              likedByMe={photoLikedByMe[photo._id] ?? false}
-              commentsCount={(photoComments[photo._id] || []).length}
+              likesCount={
+                photoLikes[photo._id] ?? 0
+              }
+              likedByMe={
+                photoLikedByMe[photo._id] ?? false
+              }
+              commentsCount={
+                (photoComments[photo._id] || [])
+                  .length
+              }
               onOpen={handleOpenPhoto}
               getImageUrl={getImageUrl}
               showAlbumLink
@@ -495,18 +535,24 @@ function HomePage() {
         onCommentChange={handleCommentChange}
         onCommentSubmit={handleCommentSubmit}
         onLike={handleLikePhoto}
+        onEditComment={handleEditComment}
+        onDeleteComment={handleDeleteComment}
         getImageUrl={getImageUrl}
       />
 
       <CreateAlbumModal
         isOpen={isCreateAlbumOpen}
-        onClose={() => setIsCreateAlbumOpen(false)}
+        onClose={() =>
+          setIsCreateAlbumOpen(false)
+        }
         onSubmit={handleCreateAlbum}
       />
 
       <CreatePhotoModal
         isOpen={isAddPhotoOpen}
-        onClose={() => setIsAddPhotoOpen(false)}
+        onClose={() =>
+          setIsAddPhotoOpen(false)
+        }
         onSubmit={handleAddPhoto}
         albums={albums}
       />

@@ -195,7 +195,7 @@ function ProfilePage() {
 
         <div className="header-actions">
           <Link className="button-link" to="/">
-            Voltar à galeria
+            Voltar à página principal
           </Link>
 
           <button

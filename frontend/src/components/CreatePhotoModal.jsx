@@ -28,12 +28,16 @@ function CreatePhotoModal({
       description: initialValues?.description ?? '',
       albumId: initialValues?.albumId ?? '',
       theme: initialValues?.theme ?? '',
-      isPublic: typeof initialValues?.isPublic === 'boolean' ? initialValues.isPublic : true,
+      isPublic:
+        typeof initialValues?.isPublic === 'boolean'
+          ? initialValues.isPublic
+          : true,
       imageUrl: initialValues?.imageUrl ?? ''
     })
+
     setPhotoFile(null)
     setImagePreview(initialValues?.imageUrl || '')
-  }, [isOpen])
+  }, [isOpen, initialValues])
 
   useEffect(() => {
     if (!photoFile) return
@@ -41,14 +45,18 @@ function CreatePhotoModal({
     const objectUrl = URL.createObjectURL(photoFile)
     setImagePreview(objectUrl)
 
-    return () => URL.revokeObjectURL(objectUrl)
+    return () => {
+      URL.revokeObjectURL(objectUrl)
+    }
   }, [photoFile])
 
   useEffect(() => {
     if (!isOpen) return
 
     const handleEscape = (event) => {
-      if (event.key === 'Escape') onClose()
+      if (event.key === 'Escape') {
+        onClose()
+      }
     }
 
     document.addEventListener('keydown', handleEscape)
@@ -62,24 +70,49 @@ function CreatePhotoModal({
 
   if (!isOpen) return null
 
+  const selectedAlbum = albums.find(
+    (album) => album._id === form.albumId
+  )
+
+  const selectedAlbumTheme = selectedAlbum?.theme || ''
+
   const handleChange = (field, value) => {
-    setForm((prev) => ({
-      ...prev,
+    setForm((previous) => ({
+      ...previous,
       [field]: value
     }))
   }
 
-  const handleSubmit = (event) => {
+  const handleAlbumChange = (event) => {
+    const albumId = event.target.value
+
+    const album = albums.find(
+      (item) => item._id === albumId
+    )
+
+    setForm((previous) => ({
+      ...previous,
+      albumId,
+      theme: album?.theme || ''
+    }))
+  }
+
+  const handleSubmit = async (event) => {
     event.preventDefault()
 
-    const selectedAlbum = albums.find((album) => album._id === form.albumId)
-    const finalTheme = selectedAlbum?.theme || form.theme
+    if (!form.albumId) {
+      return
+    }
 
-    onSubmit({
+    if (!photoFile && !form.imageUrl) {
+      return
+    }
+
+    await onSubmit({
       title: form.title,
       description: form.description,
       albumId: form.albumId,
-      theme: finalTheme,
+      theme: selectedAlbumTheme,
       isPublic: form.isPublic,
       photoFile,
       imageUrl: photoFile ? '' : form.imageUrl
@@ -88,8 +121,18 @@ function CreatePhotoModal({
 
   return (
     <div className="photo-create-backdrop">
-      <div className="photo-create-modal" role="dialog" aria-modal="true" aria-label="Adicionar fotografia">
-        <button type="button" className="photo-create-close" onClick={onClose}>
+      <div
+        className="photo-create-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Adicionar fotografia"
+      >
+        <button
+          type="button"
+          className="photo-create-close"
+          onClick={onClose}
+          aria-label="Fechar"
+        >
           ✕
         </button>
 
@@ -102,19 +145,37 @@ function CreatePhotoModal({
                 className="photo-create-file-input"
                 type="file"
                 accept="image/*"
-                onChange={(e) => setPhotoFile(e.target.files?.[0] || null)}
+                onChange={(event) => {
+                  setPhotoFile(
+                    event.target.files?.[0] || null
+                  )
+                }}
               />
+
               <div>
-                <strong>Arrasta uma fotografia para aqui</strong>
-                <span>ou clica para escolher</span>
+                <strong>
+                  Arrasta uma fotografia para aqui
+                </strong>
+
+                <span>
+                  ou clica para escolher
+                </span>
               </div>
-              <span className="photo-create-file-button">Selecionar ficheiro</span>
+
+              <span className="photo-create-file-button">
+                {photoFile
+                  ? 'Alterar ficheiro'
+                  : 'Selecionar ficheiro'}
+              </span>
             </label>
           </div>
 
           <div className="photo-create-preview-side">
             {imagePreview ? (
-              <img src={imagePreview} alt="Pré-visualização da fotografia" />
+              <img
+                src={imagePreview}
+                alt="Pré-visualização da fotografia"
+              />
             ) : (
               <div className="photo-create-preview-placeholder">
                 Pré-visualização da imagem
@@ -123,13 +184,19 @@ function CreatePhotoModal({
           </div>
         </div>
 
-        <form className="photo-create-form" onSubmit={handleSubmit}>
+        <form
+          className="photo-create-form"
+          onSubmit={handleSubmit}
+        >
           <label>
             Título
+
             <input
               type="text"
               value={form.title}
-              onChange={(e) => handleChange('title', e.target.value)}
+              onChange={(event) =>
+                handleChange('title', event.target.value)
+              }
               placeholder="Lago nas Montanhas"
               required
             />
@@ -137,70 +204,105 @@ function CreatePhotoModal({
 
           <label>
             Descrição
+
             <textarea
               value={form.description}
-              onChange={(e) => handleChange('description', e.target.value)}
+              onChange={(event) =>
+                handleChange('description', event.target.value)
+              }
               placeholder="Uma viagem inesquecível entre montanhas e rios."
             />
           </label>
 
           <label>
             Álbum
+
             <select
               value={form.albumId}
-              onChange={(e) => handleChange('albumId', e.target.value)}
+              onChange={handleAlbumChange}
               required
             >
-              <option value="">Seleciona um álbum</option>
+              <option value="">
+                Seleciona um álbum
+              </option>
+
               {albums.map((album) => (
-                <option key={album._id} value={album._id}>
+                <option
+                  key={album._id}
+                  value={album._id}
+                >
                   {album.name}
                 </option>
               ))}
             </select>
           </label>
 
-          {!form.albumId && (
-            <label>
-              Tema
-              <input
-                type="text"
-                value={form.theme}
-                onChange={(e) => handleChange('theme', e.target.value)}
-                placeholder="Ex: Viagens"
-                required={!form.albumId}
-              />
-            </label>
-          )}
+          <label>
+            Tema do álbum
+
+            <input
+              type="text"
+              value={selectedAlbumTheme}
+              placeholder="O tema será preenchido pelo álbum"
+              readOnly
+              disabled={!form.albumId}
+            />
+
+            <small className="photo-create-help-text">
+              O tema é definido automaticamente pelo álbum selecionado.
+            </small>
+          </label>
 
           <label>
             Visibilidade
+
             <select
               value={form.isPublic ? 'public' : 'private'}
-              onChange={(e) => handleChange('isPublic', e.target.value === 'public')}
+              onChange={(event) =>
+                handleChange(
+                  'isPublic',
+                  event.target.value === 'public'
+                )
+              }
             >
-              <option value="public">Público</option>
-              <option value="private">Privado</option>
+              <option value="public">
+                Público
+              </option>
+
+              <option value="private">
+                Privado
+              </option>
             </select>
           </label>
 
           {!photoFile && (
             <label>
               Ou usa um URL da imagem
+
               <input
                 type="url"
                 value={form.imageUrl}
-                onChange={(e) => handleChange('imageUrl', e.target.value)}
+                onChange={(event) =>
+                  handleChange('imageUrl', event.target.value)
+                }
                 placeholder="https://..."
               />
             </label>
           )}
 
           <div className="photo-create-actions">
-            <button type="button" className="photo-create-secondary" onClick={onClose}>
+            <button
+              type="button"
+              className="photo-create-secondary"
+              onClick={onClose}
+            >
               Cancelar
             </button>
-            <button type="submit" className="photo-create-primary">
+
+            <button
+              type="submit"
+              className="photo-create-primary"
+            >
               Publicar fotografia
             </button>
           </div>
