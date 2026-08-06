@@ -2,15 +2,15 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { publicFetch } from '../services/api.js'
 
+const INITIAL_FORM = {
+  name: '',
+  email: '',
+  password: ''
+}
+
 function RegisterPage() {
   const navigate = useNavigate()
-
-  const [form, setForm] = useState({
-    name: '',
-    email: '',
-    password: ''
-  })
-
+  const [form, setForm] = useState(INITIAL_FORM)
   const [status, setStatus] = useState('')
 
   const handleChange = (event) => {
@@ -33,12 +33,9 @@ function RegisterPage() {
       })
 
       localStorage.setItem('token', data.token)
-
-      navigate('/', {
-        replace: true
-      })
+      navigate('/', { replace: true })
     } catch (error) {
-      setStatus(error.message)
+      setStatus(error.message || 'Não foi possível criar a conta.')
     }
   }
 
@@ -49,7 +46,6 @@ function RegisterPage() {
 
         <label>
           Nome
-
           <input
             name="name"
             type="text"
@@ -61,7 +57,6 @@ function RegisterPage() {
 
         <label>
           Email
-
           <input
             name="email"
             type="email"
@@ -73,7 +68,6 @@ function RegisterPage() {
 
         <label>
           Palavra-passe
-
           <input
             name="password"
             type="password"
@@ -83,22 +77,13 @@ function RegisterPage() {
           />
         </label>
 
-        <button type="submit">
-          Criar conta
-        </button>
+        <button type="submit">Criar conta</button>
 
         <p>
-          Já tens conta?{' '}
-          <Link to="/login">
-            Entrar
-          </Link>
+          Já tens conta? <Link to="/login">Entrar</Link>
         </p>
 
-        {status && (
-          <p className="status-message">
-            {status}
-          </p>
-        )}
+        {status && <p className="status-message">{status}</p>}
       </form>
     </main>
   )

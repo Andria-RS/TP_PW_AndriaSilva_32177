@@ -2,14 +2,14 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { publicFetch } from '../services/api.js'
 
+const INITIAL_FORM = {
+  email: '',
+  password: ''
+}
+
 function LoginPage() {
   const navigate = useNavigate()
-
-  const [form, setForm] = useState({
-    email: '',
-    password: ''
-  })
-
+  const [form, setForm] = useState(INITIAL_FORM)
   const [status, setStatus] = useState('')
 
   const handleChange = (event) => {
@@ -32,12 +32,9 @@ function LoginPage() {
       })
 
       localStorage.setItem('token', data.token)
-
-      navigate('/', {
-        replace: true
-      })
+      navigate('/', { replace: true })
     } catch (error) {
-      setStatus(error.message)
+      setStatus(error.message || 'Não foi possível iniciar sessão.')
     }
   }
 
@@ -48,7 +45,6 @@ function LoginPage() {
 
         <label>
           Email
-
           <input
             name="email"
             type="email"
@@ -60,7 +56,6 @@ function LoginPage() {
 
         <label>
           Palavra-passe
-
           <input
             name="password"
             type="password"
@@ -70,22 +65,13 @@ function LoginPage() {
           />
         </label>
 
-        <button type="submit">
-          Entrar
-        </button>
+        <button type="submit">Entrar</button>
 
         <p>
-          Ainda não tens conta?{' '}
-          <Link to="/register">
-            Regista-te
-          </Link>
+          Ainda não tens conta? <Link to="/register">Regista-te</Link>
         </p>
 
-        {status && (
-          <p className="status-message">
-            {status}
-          </p>
-        )}
+        {status && <p className="status-message">{status}</p>}
       </form>
     </main>
   )
