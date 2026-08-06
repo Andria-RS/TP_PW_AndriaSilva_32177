@@ -11,8 +11,11 @@ function ProfilePage() {
   const [albums, setAlbums] = useState([])
   const [photos, setPhotos] = useState([])
   const [status, setStatus] = useState('')
+
   const [isCreateAlbumOpen, setIsCreateAlbumOpen] = useState(false)
   const [isAddPhotoOpen, setIsAddPhotoOpen] = useState(false)
+  const [openMenuId, setOpenMenuId] = useState(null)
+  const [editingAlbum, setEditingAlbum] = useState(null)
 
   useEffect(() => {
     fetchProfileData()
@@ -50,7 +53,24 @@ function ProfilePage() {
     navigate('/login')
   }
 
-  const handleCreateAlbum = async ({
+  const handleOpenCreateAlbum = () => {
+    setEditingAlbum(null)
+    setOpenMenuId(null)
+    setIsCreateAlbumOpen(true)
+  }
+
+  const handleOpenEditAlbum = (album) => {
+    setEditingAlbum(album)
+    setOpenMenuId(null)
+    setIsCreateAlbumOpen(true)
+  }
+
+  const handleCloseAlbumModal = () => {
+    setEditingAlbum(null)
+    setIsCreateAlbumOpen(false)
+  }
+
+  const handleAlbumSubmit = async ({
     name,
     description,
     theme,
@@ -72,14 +92,23 @@ function ProfilePage() {
         formData.append('coverImageUrl', coverImageUrl)
       }
 
-      await authFetch('/albums', {
-        method: 'POST',
-        body: formData
-      })
+      if (editingAlbum) {
+        await authFetch(`/albums/${editingAlbum._id}`, {
+          method: 'PUT',
+          body: formData
+        })
 
-      setStatus('Álbum criado')
-      setIsCreateAlbumOpen(false)
+        setStatus('Álbum atualizado')
+      } else {
+        await authFetch('/albums', {
+          method: 'POST',
+          body: formData
+        })
 
+        setStatus('Álbum criado')
+      }
+
+      handleCloseAlbumModal()
       await fetchProfileData()
     } catch (error) {
       setStatus(error.message)
@@ -136,6 +165,7 @@ function ProfilePage() {
         method: 'DELETE'
       })
 
+      setOpenMenuId(null)
       setStatus('Álbum apagado')
 
       await fetchProfileData()
@@ -186,7 +216,7 @@ function ProfilePage() {
             <button
               type="button"
               className="button-link"
-              onClick={() => setIsCreateAlbumOpen(true)}
+              onClick={handleOpenCreateAlbum}
             >
               Criar álbum
             </button>
@@ -199,7 +229,42 @@ function ProfilePage() {
           ) : (
             <div className="photo-grid">
               {albums.map((album) => (
-                <div key={album._id} className="album-card">
+                <div key={album._id} className="album-card profile-album-card">
+                  <div className="album-card-menu-wrapper">
+                    <button
+                      type="button"
+                      className="album-card-menu-button"
+                      aria-label={`Abrir opções do álbum ${album.name}`}
+                      aria-expanded={openMenuId === album._id}
+                      onClick={() => {
+                        setOpenMenuId((currentId) =>
+                          currentId === album._id ? null : album._id
+                        )
+                      }}
+                    >
+                      ⋯
+                    </button>
+
+                    {openMenuId === album._id && (
+                      <div className="album-card-menu">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEditAlbum(album)}
+                        >
+                          Editar
+                        </button>
+
+                        <button
+                          type="button"
+                          className="album-menu-delete"
+                          onClick={() => handleDeleteAlbum(album._id)}
+                        >
+                          Apagar
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
                   {album.coverImageUrl ? (
                     <img
                       src={getImageUrl(album.coverImageUrl)}
@@ -229,16 +294,6 @@ function ProfilePage() {
                     <small>
                       {album.isPublic ? 'Público' : 'Privado'}
                     </small>
-
-                    <div className="album-card-actions">
-                      <button
-                        type="button"
-                        className="danger-button"
-                        onClick={() => handleDeleteAlbum(album._id)}
-                      >
-                        Apagar
-                      </button>
-                    </div>
                   </div>
                 </div>
               ))}
@@ -291,8 +346,19 @@ function ProfilePage() {
 
       <CreateAlbumModal
         isOpen={isCreateAlbumOpen}
-        onClose={() => setIsCreateAlbumOpen(false)}
-        onSubmit={handleCreateAlbum}
+        onClose={handleCloseAlbumModal}
+        onSubmit={handleAlbumSubmit}
+        initialValues={
+          editingAlbum
+            ? {
+                name: editingAlbum.name,
+                description: editingAlbum.description || '',
+                theme: editingAlbum.theme,
+                isPublic: editingAlbum.isPublic,
+                coverImageUrl: editingAlbum.coverImageUrl || ''
+              }
+            : undefined
+        }
       />
 
       <CreatePhotoModal

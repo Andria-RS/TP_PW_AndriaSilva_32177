@@ -19,6 +19,8 @@ function CreateAlbumModal({
   const [coverImageFile, setCoverImageFile] = useState(null)
   const [imagePreview, setImagePreview] = useState('')
 
+  const isEditing = Boolean(initialValues?.name)
+
   useEffect(() => {
     if (!isOpen) return
 
@@ -26,12 +28,16 @@ function CreateAlbumModal({
       name: initialValues?.name ?? '',
       description: initialValues?.description ?? '',
       theme: initialValues?.theme ?? '',
-      isPublic: typeof initialValues?.isPublic === 'boolean' ? initialValues.isPublic : true,
+      isPublic:
+        typeof initialValues?.isPublic === 'boolean'
+          ? initialValues.isPublic
+          : true,
       coverImageUrl: initialValues?.coverImageUrl ?? ''
     })
+
     setCoverImageFile(null)
     setImagePreview(initialValues?.coverImageUrl || '')
-  }, [isOpen, initialValues])
+  }, [isOpen])
 
   useEffect(() => {
     if (!coverImageFile) return
@@ -39,14 +45,18 @@ function CreateAlbumModal({
     const objectUrl = URL.createObjectURL(coverImageFile)
     setImagePreview(objectUrl)
 
-    return () => URL.revokeObjectURL(objectUrl)
+    return () => {
+      URL.revokeObjectURL(objectUrl)
+    }
   }, [coverImageFile])
 
   useEffect(() => {
     if (!isOpen) return
 
     const handleEscape = (event) => {
-      if (event.key === 'Escape') onClose()
+      if (event.key === 'Escape') {
+        onClose()
+      }
     }
 
     document.addEventListener('keydown', handleEscape)
@@ -61,8 +71,8 @@ function CreateAlbumModal({
   if (!isOpen) return null
 
   const handleChange = (field, value) => {
-    setForm((prev) => ({
-      ...prev,
+    setForm((previous) => ({
+      ...previous,
       [field]: value
     }))
   }
@@ -70,40 +80,60 @@ function CreateAlbumModal({
   const handleSubmit = async (event) => {
     event.preventDefault()
 
-    try {
-      await onSubmit({
-        ...form,
-        coverImageFile,
-        coverImageUrl: coverImageFile ? '' : form.coverImageUrl
-      })
-    } catch (error) {
-      console.error('CreateAlbumModal submit error:', error)
-    }
+    await onSubmit({
+      ...form,
+      coverImageFile,
+      coverImageUrl: coverImageFile ? '' : form.coverImageUrl
+    })
   }
 
   return (
     <div className="album-create-backdrop">
-      <div className="album-create-modal" role="dialog" aria-modal="true" aria-label="Criar novo álbum">
-        <button type="button" className="album-create-close" onClick={onClose}>
+      <div
+        className="album-create-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-label={isEditing ? 'Editar álbum' : 'Criar novo álbum'}
+      >
+        <button
+          type="button"
+          className="album-create-close"
+          onClick={onClose}
+          aria-label="Fechar"
+        >
           ✕
         </button>
 
         <div className="album-create-layout">
           <div className="album-create-form-side">
-            <span className="album-create-kicker">Criar novo álbum</span>
-            <h2>Organiza as tuas memórias num só lugar</h2>
+            <span className="album-create-kicker">
+              {isEditing ? 'Editar álbum' : 'Criar novo álbum'}
+            </span>
+
+            <h2>
+              {isEditing
+                ? 'Atualiza os dados do teu álbum'
+                : 'Organiza as tuas memórias num só lugar'}
+            </h2>
+
             <p>
-              Dá um nome ao álbum, escolhe um tema e define se queres mantê-lo
-              público ou privado.
+              Dá um nome ao álbum, escolhe um tema e define se queres
+              mantê-lo público ou privado.
             </p>
 
-            <form className="album-create-form" onSubmit={handleSubmit}>
+            <form
+              className="album-create-form"
+              onSubmit={handleSubmit}
+            >
               <label className="album-create-field">
                 Nome do álbum
+
                 <input
                   type="text"
                   value={form.name}
-                  onChange={(e) => handleChange('name', e.target.value)}
+                  onChange={(event) =>
+                    handleChange('name', event.target.value)
+                  }
                   placeholder="Viagens pelo Mundo"
                   required
                 />
@@ -111,21 +141,28 @@ function CreateAlbumModal({
 
               <label className="album-create-field">
                 Descrição
+
                 <textarea
                   value={form.description}
-                  onChange={(e) => handleChange('description', e.target.value)}
+                  onChange={(event) =>
+                    handleChange('description', event.target.value)
+                  }
                   placeholder="As minhas aventuras e viagens inesquecíveis."
                 />
               </label>
 
               <label className="album-create-field">
                 Tema
+
                 <select
                   value={form.theme}
-                  onChange={(e) => handleChange('theme', e.target.value)}
+                  onChange={(event) =>
+                    handleChange('theme', event.target.value)
+                  }
                   required
                 >
                   <option value="">Seleciona um tema</option>
+
                   {ALLOWED_THEMES.map((theme) => (
                     <option key={theme} value={theme}>
                       {theme}
@@ -141,9 +178,11 @@ function CreateAlbumModal({
                   <input
                     type="radio"
                     name="visibility"
+                    value="public"
                     checked={form.isPublic === true}
                     onChange={() => handleChange('isPublic', true)}
                   />
+
                   <div>
                     <strong>Público</strong>
                     <span>Aberto a todos os utilizadores.</span>
@@ -154,9 +193,11 @@ function CreateAlbumModal({
                   <input
                     type="radio"
                     name="visibility"
+                    value="private"
                     checked={form.isPublic === false}
                     onChange={() => handleChange('isPublic', false)}
                   />
+
                   <div>
                     <strong>Privado</strong>
                     <span>Apenas tu vês este álbum.</span>
@@ -165,11 +206,19 @@ function CreateAlbumModal({
               </fieldset>
 
               <div className="album-create-actions">
-                <button type="button" className="album-create-secondary" onClick={onClose}>
+                <button
+                  type="button"
+                  className="album-create-secondary"
+                  onClick={onClose}
+                >
                   Cancelar
                 </button>
-                <button type="submit" className="album-create-primary">
-                  Criar álbum
+
+                <button
+                  type="submit"
+                  className="album-create-primary"
+                >
+                  {isEditing ? 'Confirmar' : 'Criar álbum'}
                 </button>
               </div>
             </form>
@@ -177,10 +226,15 @@ function CreateAlbumModal({
 
           <div className="album-create-preview-side">
             <div className="album-create-preview-card">
-              <div className="album-create-preview-label">Imagem de capa</div>
+              <div className="album-create-preview-label">
+                Imagem de capa
+              </div>
 
               {imagePreview ? (
-                <img src={imagePreview} alt="Pré-visualização da capa do álbum" />
+                <img
+                  src={imagePreview}
+                  alt="Pré-visualização da capa do álbum"
+                />
               ) : (
                 <div className="album-create-preview-placeholder">
                   <span>Pré-visualização da imagem</span>
@@ -192,19 +246,32 @@ function CreateAlbumModal({
                   <input
                     type="file"
                     accept="image/*"
-                    onChange={(e) => setCoverImageFile(e.target.files?.[0] || null)}
+                    onChange={(event) => {
+                      setCoverImageFile(
+                        event.target.files?.[0] || null
+                      )
+                    }}
                   />
-                  {coverImageFile ? 'Alterar imagem' : 'Adicionar imagem'}
+
+                  {coverImageFile
+                    ? 'Alterar imagem'
+                    : 'Adicionar imagem'}
                 </label>
               </div>
 
               {!coverImageFile && (
                 <label className="album-create-url">
                   Ou usa um URL da capa
+
                   <input
                     type="url"
                     value={form.coverImageUrl}
-                    onChange={(e) => handleChange('coverImageUrl', e.target.value)}
+                    onChange={(event) =>
+                      handleChange(
+                        'coverImageUrl',
+                        event.target.value
+                      )
+                    }
                     placeholder="https://..."
                   />
                 </label>
