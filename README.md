@@ -219,11 +219,11 @@ As principais áreas da API são:
 
 | Rota | Descrição |
 |---|---|
-| `/api/auth` | Registo e autenticação dos utilizadores |
-| `/api/albums` | Criação e gestão de álbuns |
-| `/api/photos` | Upload e gestão de fotografias |
-| `/api/likes` | Adição e remoção de likes |
-| `/api/comments` | Criação, edição e eliminação de comentários |
+| `/routes/auth` | Registo e autenticação dos utilizadores |
+| `/routes/albums` | Criação e gestão de álbuns |
+| `/routes/photos` | Upload e gestão de fotografias |
+| `/routes/likes` | Adição e remoção de likes |
+| `/routes/comments` | Criação, edição e eliminação de comentários |
 
 As rotas protegidas requerem um token JWT no cabeçalho da requisição:
 
