@@ -10,7 +10,7 @@ function Navbar() {
     const fetchCurrentUser = async () => {
       try {
         const data = await authFetch('/auth/me')
-        setUser(data.user)
+        setUser(data.user || null)
       } catch {
         setUser(null)
       }
@@ -28,7 +28,12 @@ function Navbar() {
   return (
     <header className="lumen-navbar">
       <Link to="/" className="lumen-logo">
-        <div className="lumen-logo-mark">◎</div>
+        <img
+          src="/logotipoLumenSemFundo.png"
+          alt="Logotipo da Lumen"
+          className="lumen-logo-image"
+        />
+
         <span>LUMEN</span>
       </Link>
 
@@ -44,7 +49,11 @@ function Navbar() {
               Perfil
             </Link>
 
-            <button type="button" className="button-link" onClick={handleLogout}>
+            <button
+              type="button"
+              className="button-link"
+              onClick={handleLogout}
+            >
               Sair
             </button>
           </>

@@ -708,9 +708,8 @@ button {
 }
 
 .lumen-logo {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 10px;
   color: var(--color-text);
   text-decoration: none;
   font-weight: 800;
@@ -721,15 +720,11 @@ button {
   color: var(--color-text);
 }
 
-.lumen-logo-mark {
-  width: 34px;
-  height: 34px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  background: var(--color-primary-soft);
-  color: var(--color-primary-dark);
-  font-weight: 900;
+.lumen-logo-image {
+  width: 60px;
+  height: 60px;
+  display: block;
+  object-fit: contain;
 }
 
 .lumen-nav-links {
