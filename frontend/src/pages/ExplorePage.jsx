@@ -1,82 +1,148 @@
 import { useEffect, useMemo, useState } from 'react'
-import { publicFetch } from '../services/api.js'
+import { publicFetch, authFetch } from '../services/api.js'
 import { ALLOWED_THEMES } from '../constants/themes.js'
 import PhotoCard from '../components/PhotoCard.jsx'
 import PhotoModal from '../components/PhotoModal.jsx'
 import Navbar from '../components/Navbar.jsx'
 
 function ExplorePage() {
+  const [user, setUser] = useState(null)
   const [photos, setPhotos] = useState([])
   const [photoComments, setPhotoComments] = useState({})
   const [photoLikes, setPhotoLikes] = useState({})
-  const [selectedPhoto, setSelectedPhoto] = useState(null)
-  const [themeFilter, setThemeFilter] = useState('')
+  const [photoLikedByMe, setPhotoLikedByMe] =
+    useState({})
+  const [selectedPhoto, setSelectedPhoto] =
+    useState(null)
+  const [themeFilter, setThemeFilter] =
+    useState('')
   const [status, setStatus] = useState('')
 
   useEffect(() => {
+    fetchCurrentUser()
     fetchPublicPhotos()
   }, [])
 
-  const getImageUrl = (imageUrl) => {
-    if (!imageUrl) return ''
+  const hasToken = () => {
+    return Boolean(localStorage.getItem('token'))
+  }
 
-    if (imageUrl.startsWith('http')) {
+  const getImageUrl = (imageUrl) => {
+    if (!imageUrl) {
+      return ''
+    }
+
+    if (
+      imageUrl.startsWith('http://') ||
+      imageUrl.startsWith('https://')
+    ) {
       return imageUrl
     }
 
     return `http://localhost:4000${imageUrl}`
   }
 
-  const fetchPublicPhotos = async (nextTheme = themeFilter) => {
+  const fetchCurrentUser = async () => {
+    if (!hasToken()) {
+      setUser(null)
+      return
+    }
+
     try {
+      const data = await authFetch('/auth/me')
+
+      setUser(data.user || null)
+    } catch {
+      localStorage.removeItem('token')
+      setUser(null)
+    }
+  }
+
+  const fetchPublicPhotos = async (
+    nextTheme = themeFilter
+  ) => {
+    try {
+      setStatus('')
+
       const query = nextTheme
         ? `?theme=${encodeURIComponent(nextTheme)}`
         : ''
 
-      const data = await publicFetch(`/photos${query}`)
+      const response = await publicFetch(
+        `/photos${query}`
+      )
 
-      setPhotos(data)
+      const loadedPhotos = Array.isArray(response)
+        ? response
+        : Array.isArray(response?.photos)
+          ? response.photos
+          : []
+
+      setPhotos(loadedPhotos)
 
       const likesEntries = await Promise.all(
-        data.map(async (photo) => {
+        loadedPhotos.map(async (photo) => {
           try {
-            const response = await publicFetch(
+            const request = hasToken()
+              ? authFetch
+              : publicFetch
+
+            const likesResponse = await request(
               `/likes/photo/${photo._id}`
             )
 
-            return [
-              photo._id,
-              response.likes || 0
-            ]
+            return {
+              id: photo._id,
+              likes: likesResponse.likes || 0,
+              likedByMe: Boolean(
+                likesResponse.likedByMe
+              )
+            }
           } catch {
-            return [photo._id, 0]
+            return {
+              id: photo._id,
+              likes: 0,
+              likedByMe: false
+            }
           }
         })
       )
 
       const commentsEntries = await Promise.all(
-        data.map(async (photo) => {
+        loadedPhotos.map(async (photo) => {
           try {
-            const response = await publicFetch(
-              `/comments/photo/${photo._id}`
-            )
+            const commentsResponse =
+              await publicFetch(
+                `/comments/photo/${photo._id}`
+              )
 
-            return [photo._id, response]
+            return [photo._id, commentsResponse]
           } catch {
             return [photo._id, []]
           }
         })
       )
 
-      setPhotoLikes(
-        Object.fromEntries(likesEntries)
+      const likesMap = {}
+      const likedByMeMap = {}
+
+      likesEntries.forEach(
+        ({ id, likes, likedByMe }) => {
+          likesMap[id] = likes
+          likedByMeMap[id] = likedByMe
+        }
       )
 
+      setPhotoLikes(likesMap)
+      setPhotoLikedByMe(likedByMeMap)
       setPhotoComments(
         Object.fromEntries(commentsEntries)
       )
     } catch (error) {
-      setStatus(error.message)
+      setStatus(
+        error.message ||
+          'Não foi possível carregar as fotografias.'
+      )
     }
   }
 
@@ -100,7 +166,11 @@ function ExplorePage() {
 
   const fetchPhotoLikes = async (photoId) => {
     try {
-      const response = await publicFetch(
+      const request = hasToken()
+        ? authFetch
+        : publicFetch
+
+      const response = await request(
         `/likes/photo/${photoId}`
       )
 
@@ -108,10 +178,20 @@ function ExplorePage() {
         ...previous,
         [photoId]: response.likes || 0
       }))
+
+      setPhotoLikedByMe((previous) => ({
+        ...previous,
+        [photoId]: Boolean(response.likedByMe)
+      }))
     } catch {
       setPhotoLikes((previous) => ({
         ...previous,
         [photoId]: 0
+      }))
+
+      setPhotoLikedByMe((previous) => ({
+        ...previous,
+        [photoId]: false
       }))
     }
   }
@@ -127,6 +207,43 @@ function ExplorePage() {
 
   const handleClosePhoto = () => {
     setSelectedPhoto(null)
+  }
+
+  const handleLikePhoto = async (photoId) => {
+    if (!hasToken()) {
+      setStatus(
+        'Tens de iniciar sessão para gostar de uma fotografia.'
+      )
+      return
+    }
+
+    try {
+      const response = await authFetch(
+        `/likes/photo/${photoId}`,
+        {
+          method: 'POST'
+        }
+      )
+
+      setPhotoLikes((previous) => ({
+        ...previous,
+        [photoId]: response.likes || 0
+      }))
+
+      setPhotoLikedByMe((previous) => ({
+        ...previous,
+        [photoId]: Boolean(response.likedByMe)
+      }))
+
+      setStatus(
+        response.message || 'Gostei atualizado'
+      )
+    } catch (error) {
+      setStatus(
+        error.message ||
+          'Não foi possível atualizar o like.'
+      )
+    }
   }
 
   const handleThemeClick = async (theme) => {
@@ -148,8 +265,12 @@ function ExplorePage() {
       )
     ]
 
-    return themes.slice(0, 8)
+    return themes
   }, [photos])
+
+  const visibleThemes = ALLOWED_THEMES.filter(
+    (theme) => themeSuggestions.includes(theme)
+  )
 
   return (
     <main className="app-shell explore-page">
@@ -181,24 +302,20 @@ function ExplorePage() {
           Todos
         </button>
 
-        {ALLOWED_THEMES
-          .filter((theme) =>
-            themeSuggestions.includes(theme)
-          )
-          .map((theme) => (
-            <button
-              key={theme}
-              type="button"
-              className={
-                themeFilter === theme
-                  ? 'theme-chip active'
-                  : 'theme-chip'
-              }
-              onClick={() => handleThemeClick(theme)}
-            >
-              {theme}
-            </button>
-          ))}
+        {visibleThemes.map((theme) => (
+          <button
+            key={theme}
+            type="button"
+            className={
+              themeFilter === theme
+                ? 'theme-chip active'
+                : 'theme-chip'
+            }
+            onClick={() => handleThemeClick(theme)}
+          >
+            {theme}
+          </button>
+        ))}
       </section>
 
       {status && (
@@ -220,6 +337,9 @@ function ExplorePage() {
               likesCount={
                 photoLikes[photo._id] ?? 0
               }
+              likedByMe={
+                photoLikedByMe[photo._id] ?? false
+              }
               commentsCount={
                 (photoComments[photo._id] || [])
                   .length
@@ -236,11 +356,16 @@ function ExplorePage() {
         photo={selectedPhoto}
         isOpen={Boolean(selectedPhoto)}
         onClose={handleClosePhoto}
-        user={null}
+        user={user}
         likesCount={
           selectedPhoto
             ? photoLikes[selectedPhoto._id] ?? 0
             : 0
+        }
+        likedByMe={
+          selectedPhoto
+            ? photoLikedByMe[selectedPhoto._id] ?? false
+            : false
         }
         comments={
           selectedPhoto
@@ -250,7 +375,7 @@ function ExplorePage() {
         commentValue=""
         onCommentChange={() => {}}
         onCommentSubmit={() => {}}
-        onLike={() => {}}
+        onLike={handleLikePhoto}
         getImageUrl={getImageUrl}
       />
     </main>

@@ -19,30 +19,37 @@ function CreatePhotoModal({
   const [form, setForm] = useState(defaultInitialValues)
   const [photoFile, setPhotoFile] = useState(null)
   const [imagePreview, setImagePreview] = useState('')
+  const [errorMessage, setErrorMessage] = useState('')
 
   useEffect(() => {
-    if (!isOpen) return
+    if (!isOpen) {
+      return
+    }
 
     setForm({
-      title: initialValues?.title ?? '',
-      description: initialValues?.description ?? '',
-      albumId: initialValues?.albumId ?? '',
-      theme: initialValues?.theme ?? '',
+      title: initialValues?.title || '',
+      description: initialValues?.description || '',
+      albumId: initialValues?.albumId || '',
+      theme: initialValues?.theme || '',
       isPublic:
         typeof initialValues?.isPublic === 'boolean'
           ? initialValues.isPublic
           : true,
-      imageUrl: initialValues?.imageUrl ?? ''
+      imageUrl: initialValues?.imageUrl || ''
     })
 
     setPhotoFile(null)
     setImagePreview(initialValues?.imageUrl || '')
+    setErrorMessage('')
   }, [isOpen, initialValues])
 
   useEffect(() => {
-    if (!photoFile) return
+    if (!photoFile) {
+      return
+    }
 
     const objectUrl = URL.createObjectURL(photoFile)
+
     setImagePreview(objectUrl)
 
     return () => {
@@ -51,7 +58,9 @@ function CreatePhotoModal({
   }, [photoFile])
 
   useEffect(() => {
-    if (!isOpen) return
+    if (!isOpen) {
+      return
+    }
 
     const handleEscape = (event) => {
       if (event.key === 'Escape') {
@@ -63,18 +72,26 @@ function CreatePhotoModal({
     document.body.style.overflow = 'hidden'
 
     return () => {
-      document.removeEventListener('keydown', handleEscape)
+      document.removeEventListener(
+        'keydown',
+        handleEscape
+      )
+
       document.body.style.overflow = ''
     }
   }, [isOpen, onClose])
 
-  if (!isOpen) return null
+  if (!isOpen) {
+    return null
+  }
 
   const selectedAlbum = albums.find(
-    (album) => album._id === form.albumId
+    (album) =>
+      String(album._id) === String(form.albumId)
   )
 
-  const selectedAlbumTheme = selectedAlbum?.theme || ''
+  const selectedAlbumTheme =
+    selectedAlbum?.theme || ''
 
   const handleChange = (field, value) => {
     setForm((previous) => ({
@@ -87,7 +104,8 @@ function CreatePhotoModal({
     const albumId = event.target.value
 
     const album = albums.find(
-      (item) => item._id === albumId
+      (item) =>
+        String(item._id) === String(albumId)
     )
 
     setForm((previous) => ({
@@ -97,25 +115,48 @@ function CreatePhotoModal({
     }))
   }
 
+  const handleFileChange = (event) => {
+    const file = event.target.files?.[0] || null
+
+    setPhotoFile(file)
+    setErrorMessage('')
+  }
+
   const handleSubmit = async (event) => {
     event.preventDefault()
+    setErrorMessage('')
 
-    if (!form.albumId) {
+    if (!form.title.trim()) {
+      setErrorMessage(
+        'Introduz um título para a fotografia.'
+      )
       return
     }
 
-    if (!photoFile && !form.imageUrl) {
+    if (!form.albumId) {
+      setErrorMessage(
+        'Seleciona um álbum para a fotografia.'
+      )
+      return
+    }
+
+    if (!photoFile && !form.imageUrl.trim()) {
+      setErrorMessage(
+        'Seleciona uma fotografia ou introduz um URL.'
+      )
       return
     }
 
     await onSubmit({
-      title: form.title,
-      description: form.description,
+      title: form.title.trim(),
+      description: form.description.trim(),
       albumId: form.albumId,
       theme: selectedAlbumTheme,
       isPublic: form.isPublic,
       photoFile,
-      imageUrl: photoFile ? '' : form.imageUrl
+      imageUrl: photoFile
+        ? ''
+        : form.imageUrl.trim()
     })
   }
 
@@ -145,11 +186,7 @@ function CreatePhotoModal({
                 className="photo-create-file-input"
                 type="file"
                 accept="image/*"
-                onChange={(event) => {
-                  setPhotoFile(
-                    event.target.files?.[0] || null
-                  )
-                }}
+                onChange={handleFileChange}
               />
 
               <div>
@@ -195,9 +232,12 @@ function CreatePhotoModal({
               type="text"
               value={form.title}
               onChange={(event) =>
-                handleChange('title', event.target.value)
+                handleChange(
+                  'title',
+                  event.target.value
+                )
               }
-              placeholder="Lago nas Montanhas"
+              placeholder="Lago nas montanhas"
               required
             />
           </label>
@@ -208,7 +248,10 @@ function CreatePhotoModal({
             <textarea
               value={form.description}
               onChange={(event) =>
-                handleChange('description', event.target.value)
+                handleChange(
+                  'description',
+                  event.target.value
+                )
               }
               placeholder="Uma viagem inesquecível entre montanhas e rios."
             />
@@ -232,6 +275,9 @@ function CreatePhotoModal({
                   value={album._id}
                 >
                   {album.name}
+                  {album.isPublic === false
+                    ? ' — Privado'
+                    : ' — Público'}
                 </option>
               ))}
             </select>
@@ -243,37 +289,58 @@ function CreatePhotoModal({
             <input
               type="text"
               value={selectedAlbumTheme}
-              placeholder="O tema será preenchido pelo álbum"
+              placeholder="Seleciona primeiro um álbum"
               readOnly
               disabled={!form.albumId}
             />
 
             <small className="photo-create-help-text">
-              O tema é definido automaticamente pelo álbum selecionado.
+              O tema é preenchido automaticamente pelo
+              álbum selecionado.
             </small>
           </label>
 
-          <label>
-            Visibilidade
+          <fieldset className="album-create-fieldset">
+            <legend>
+              Visibilidade da fotografia
+            </legend>
 
-            <select
-              value={form.isPublic ? 'public' : 'private'}
-              onChange={(event) =>
-                handleChange(
-                  'isPublic',
-                  event.target.value === 'public'
-                )
-              }
-            >
-              <option value="public">
-                Público
-              </option>
+            <label className="album-create-radio-option">
+              <input
+                type="radio"
+                name="photo-visibility"
+                checked={form.isPublic === true}
+                onChange={() =>
+                  handleChange('isPublic', true)
+                }
+              />
 
-              <option value="private">
-                Privado
-              </option>
-            </select>
-          </label>
+              <div>
+                <strong>Público</strong>
+                <span>
+                  Aberta a todos os utilizadores.
+                </span>
+              </div>
+            </label>
+
+            <label className="album-create-radio-option">
+              <input
+                type="radio"
+                name="photo-visibility"
+                checked={form.isPublic === false}
+                onChange={() =>
+                  handleChange('isPublic', false)
+                }
+              />
+
+              <div>
+                <strong>Privado</strong>
+                <span>
+                  Apenas tu vês esta fotografia.
+                </span>
+              </div>
+            </label>
+          </fieldset>
 
           {!photoFile && (
             <label>
@@ -283,11 +350,20 @@ function CreatePhotoModal({
                 type="url"
                 value={form.imageUrl}
                 onChange={(event) =>
-                  handleChange('imageUrl', event.target.value)
+                  handleChange(
+                    'imageUrl',
+                    event.target.value
+                  )
                 }
                 placeholder="https://..."
               />
             </label>
+          )}
+
+          {errorMessage && (
+            <p className="status-message">
+              {errorMessage}
+            </p>
           )}
 
           <div className="photo-create-actions">
@@ -302,6 +378,7 @@ function CreatePhotoModal({
             <button
               type="submit"
               className="photo-create-primary"
+              disabled={albums.length === 0}
             >
               Publicar fotografia
             </button>

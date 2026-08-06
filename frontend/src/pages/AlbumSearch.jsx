@@ -133,14 +133,14 @@ function AlbumSearch() {
       <section className="albums-page-header">
         <div>
           <span className="albums-page-kicker">
-            Coleções da comunidade
+            Álbuns da comunidade
           </span>
 
           <h1>Explora álbuns</h1>
 
           <p>
-            Pesquisa pelo nome do álbum ou seleciona
-            um tema para encontrares novas fotografias.
+            Pesquisa pelo nome do álbum e/ou seleciona
+            um tema para encontrares álbuns.
           </p>
         </div>
 

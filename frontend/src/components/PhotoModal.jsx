@@ -1,5 +1,141 @@
 import { useEffect, useState } from 'react'
 
+const getUserId = (value) => {
+  if (!value) return null
+
+  return typeof value === 'object'
+    ? value._id || value.id || null
+    : value
+}
+
+function CommentItem({
+  comment,
+  user,
+  onEditComment,
+  onDeleteComment
+}) {
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
+  const [editingText, setEditingText] = useState(comment.text)
+
+  const authorName = comment.author?.name || 'Anónimo'
+  const isOwner =
+    String(getUserId(user)) === String(getUserId(comment.author))
+
+  const handleStartEdit = () => {
+    setIsMenuOpen(false)
+    setIsEditing(true)
+    setEditingText(comment.text)
+  }
+
+  const handleCancelEdit = () => {
+    setIsEditing(false)
+    setEditingText(comment.text)
+  }
+
+  const handleConfirmEdit = async () => {
+    const text = editingText.trim()
+
+    if (!text) return
+
+    try {
+      await onEditComment(comment._id, text)
+      setIsEditing(false)
+    } catch {
+      // O componente pai trata o erro.
+    }
+  }
+
+  const handleDelete = async () => {
+    const confirmed = window.confirm(
+      'Tens a certeza que queres apagar este comentário?'
+    )
+
+    if (!confirmed) return
+
+    try {
+      setIsMenuOpen(false)
+      await onDeleteComment(comment._id)
+    } catch {
+      // O componente pai trata o erro.
+    }
+  }
+
+  return (
+    <div className="comment-item comment-item-editable">
+      <div className="comment-avatar">
+        {authorName.charAt(0).toUpperCase()}
+      </div>
+
+      <div className="comment-content">
+        <div className="comment-header">
+          <strong>{authorName}</strong>
+
+          {isOwner && (
+            <div className="comment-menu-wrapper">
+              <button
+                type="button"
+                className="comment-menu-button"
+                aria-label="Opções do comentário"
+                aria-expanded={isMenuOpen}
+                onClick={() => setIsMenuOpen((open) => !open)}
+              >
+                ⋯
+              </button>
+
+              {isMenuOpen && (
+                <div className="comment-menu">
+                  <button type="button" onClick={handleStartEdit}>
+                    Editar
+                  </button>
+
+                  <button
+                    type="button"
+                    className="comment-menu-delete"
+                    onClick={handleDelete}
+                  >
+                    Apagar
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {isEditing ? (
+          <div className="comment-edit-box">
+            <textarea
+              value={editingText}
+              onChange={(event) => setEditingText(event.target.value)}
+              autoFocus
+            />
+
+            <div className="comment-edit-actions">
+              <button
+                type="button"
+                className="comment-edit-cancel"
+                onClick={handleCancelEdit}
+              >
+                Cancelar
+              </button>
+
+              <button
+                type="button"
+                className="comment-edit-confirm"
+                onClick={handleConfirmEdit}
+              >
+                Confirmar
+              </button>
+            </div>
+          </div>
+        ) : (
+          <p>{comment.text}</p>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function PhotoModal({
   photo,
   isOpen,
@@ -16,17 +152,11 @@ function PhotoModal({
   onDeleteComment,
   getImageUrl
 }) {
-  const [openCommentMenuId, setOpenCommentMenuId] = useState(null)
-  const [editingCommentId, setEditingCommentId] = useState(null)
-  const [editingText, setEditingText] = useState('')
-
   useEffect(() => {
     if (!isOpen) return
 
     const handleEscape = (event) => {
-      if (event.key === 'Escape') {
-        onClose()
-      }
+      if (event.key === 'Escape') onClose()
     }
 
     document.addEventListener('keydown', handleEscape)
@@ -38,76 +168,7 @@ function PhotoModal({
     }
   }, [isOpen, onClose])
 
-  useEffect(() => {
-    setOpenCommentMenuId(null)
-    setEditingCommentId(null)
-    setEditingText('')
-  }, [photo])
-
-  if (!isOpen || !photo) {
-    return null
-  }
-
-  const getUserId = (value) => {
-    if (!value) return null
-
-    if (typeof value === 'object') {
-      return value._id || value.id || null
-    }
-
-    return value
-  }
-
-  const isCommentOwner = (comment) => {
-    const currentUserId = getUserId(user)
-    const commentAuthorId = getUserId(comment.author)
-
-    if (!currentUserId || !commentAuthorId) {
-      return false
-    }
-
-    return String(currentUserId) === String(commentAuthorId)
-  }
-
-  const handleStartEdit = (comment) => {
-    setOpenCommentMenuId(null)
-    setEditingCommentId(comment._id)
-    setEditingText(comment.text)
-  }
-
-  const handleCancelEdit = () => {
-    setEditingCommentId(null)
-    setEditingText('')
-  }
-
-  const handleConfirmEdit = async (commentId) => {
-    const text = editingText.trim()
-
-    if (!text) return
-
-    try {
-      await onEditComment(commentId, text)
-      setEditingCommentId(null)
-      setEditingText('')
-    } catch {
-      // O componente pai apresenta o erro.
-    }
-  }
-
-  const handleDelete = async (commentId) => {
-    const confirmed = window.confirm(
-      'Tens a certeza que queres apagar este comentário?'
-    )
-
-    if (!confirmed) return
-
-    try {
-      setOpenCommentMenuId(null)
-      await onDeleteComment(commentId)
-    } catch {
-      // O componente pai apresenta o erro.
-    }
-  }
+  if (!isOpen || !photo) return null
 
   const authorName = photo.author?.name || 'Anónimo'
   const photoTheme = photo.theme || ''
@@ -149,17 +210,12 @@ function PhotoModal({
 
                 <small>
                   {photoTheme}
-
-                  {albumName
-                    ? ` • ${albumName}`
-                    : ''}
+                  {albumName && ` • ${albumName}`}
                 </small>
               </div>
             </div>
 
-            {photo.description ? (
-              <p>{photo.description}</p>
-            ) : null}
+            {photo.description && <p>{photo.description}</p>}
           </div>
 
           <div className="photo-modal-meta">
@@ -171,109 +227,17 @@ function PhotoModal({
             <h3>Comentários ({comments.length})</h3>
 
             {comments.length === 0 ? (
-              <p className="empty-state">
-                Sem comentários ainda.
-              </p>
+              <p className="empty-state">Sem comentários ainda.</p>
             ) : (
               <div className="comments-list">
                 {comments.map((comment) => (
-                  <div
+                  <CommentItem
                     key={comment._id}
-                    className="comment-item comment-item-editable"
-                  >
-                    <div className="comment-avatar">
-                      {(comment.author?.name || 'A')
-                        .charAt(0)
-                        .toUpperCase()}
-                    </div>
-
-                    <div className="comment-content">
-                      <div className="comment-header">
-                        <strong>
-                          {comment.author?.name || 'Anónimo'}
-                        </strong>
-
-                        {isCommentOwner(comment) && (
-                          <div className="comment-menu-wrapper">
-                            <button
-                              type="button"
-                              className="comment-menu-button"
-                              aria-label="Opções do comentário"
-                              aria-expanded={
-                                openCommentMenuId === comment._id
-                              }
-                              onClick={() => {
-                                setOpenCommentMenuId((currentId) =>
-                                  currentId === comment._id
-                                    ? null
-                                    : comment._id
-                                )
-                              }}
-                            >
-                              ⋯
-                            </button>
-
-                            {openCommentMenuId === comment._id && (
-                              <div className="comment-menu">
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    handleStartEdit(comment)
-                                  }
-                                >
-                                  Editar
-                                </button>
-
-                                <button
-                                  type="button"
-                                  className="comment-menu-delete"
-                                  onClick={() =>
-                                    handleDelete(comment._id)
-                                  }
-                                >
-                                  Apagar
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-
-                      {editingCommentId === comment._id ? (
-                        <div className="comment-edit-box">
-                          <textarea
-                            value={editingText}
-                            onChange={(event) =>
-                              setEditingText(event.target.value)
-                            }
-                            autoFocus
-                          />
-
-                          <div className="comment-edit-actions">
-                            <button
-                              type="button"
-                              className="comment-edit-cancel"
-                              onClick={handleCancelEdit}
-                            >
-                              Cancelar
-                            </button>
-
-                            <button
-                              type="button"
-                              className="comment-edit-confirm"
-                              onClick={() =>
-                                handleConfirmEdit(comment._id)
-                              }
-                            >
-                              Confirmar
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <p>{comment.text}</p>
-                      )}
-                    </div>
-                  </div>
+                    comment={comment}
+                    user={user}
+                    onEditComment={onEditComment}
+                    onDeleteComment={onDeleteComment}
+                  />
                 ))}
               </div>
             )}
@@ -284,20 +248,10 @@ function PhotoModal({
               <>
                 <button
                   type="button"
-                  className={`photo-like-icon-btn ${
-                    likedByMe ? 'liked' : ''
-                  }`}
+                  className={`photo-like-icon-btn ${likedByMe ? 'liked' : ''}`}
                   onClick={() => onLike(photo._id)}
-                  aria-label={
-                    likedByMe
-                      ? 'Remover gosto'
-                      : 'Gostar'
-                  }
-                  title={
-                    likedByMe
-                      ? 'Remover gosto'
-                      : 'Gostar'
-                  }
+                  aria-label={likedByMe ? 'Remover gosto' : 'Gostar'}
+                  title={likedByMe ? 'Remover gosto' : 'Gostar'}
                 >
                   <svg
                     viewBox="0 0 24 24"
@@ -310,26 +264,19 @@ function PhotoModal({
 
                 <form
                   className="comment-form photo-modal-form"
-                  onSubmit={(event) =>
-                    onCommentSubmit(event, photo._id)
-                  }
+                  onSubmit={(event) => onCommentSubmit(event, photo._id)}
                 >
                   <input
                     type="text"
                     placeholder="Escreve um comentário..."
                     value={commentValue}
                     onChange={(event) =>
-                      onCommentChange(
-                        photo._id,
-                        event.target.value
-                      )
+                      onCommentChange(photo._id, event.target.value)
                     }
                     required
                   />
 
-                  <button type="submit">
-                    Enviar
-                  </button>
+                  <button type="submit">Enviar</button>
                 </form>
               </>
             ) : (

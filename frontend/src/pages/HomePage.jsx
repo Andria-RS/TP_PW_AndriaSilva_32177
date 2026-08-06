@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { authFetch, publicFetch } from '../services/api.js'
+import {
+  authFetch,
+  publicFetch
+} from '../services/api.js'
 import PhotoCard from '../components/PhotoCard.jsx'
 import PhotoModal from '../components/PhotoModal.jsx'
 import CreateAlbumModal from '../components/CreateAlbumModal.jsx'
@@ -14,24 +17,38 @@ function HomePage() {
   const [albums, setAlbums] = useState([])
   const [photos, setPhotos] = useState([])
   const [status, setStatus] = useState('')
+
   const [themeFilter, setThemeFilter] = useState('')
   const [selectedAlbum, setSelectedAlbum] = useState('')
+
   const [photoComments, setPhotoComments] = useState({})
   const [photoLikes, setPhotoLikes] = useState({})
   const [photoLikedByMe, setPhotoLikedByMe] = useState({})
   const [commentInput, setCommentInput] = useState({})
+
   const [selectedPhoto, setSelectedPhoto] = useState(null)
-  const [isCreateAlbumOpen, setIsCreateAlbumOpen] = useState(false)
-  const [isAddPhotoOpen, setIsAddPhotoOpen] = useState(false)
+  const [isCreateAlbumOpen, setIsCreateAlbumOpen] =
+    useState(false)
+  const [isAddPhotoOpen, setIsAddPhotoOpen] =
+    useState(false)
 
   useEffect(() => {
-    fetchCurrentUser()
-    fetchAlbums()
+    loadInitialData()
   }, [])
 
   useEffect(() => {
     fetchPhotos()
   }, [user, themeFilter, selectedAlbum])
+
+  const hasToken = () => {
+    return Boolean(localStorage.getItem('token'))
+  }
+
+  const loadInitialData = async () => {
+    const currentUser = await fetchCurrentUser()
+
+    await fetchAlbums(Boolean(currentUser))
+  }
 
   const featuredPhoto = photos[0] || null
 
@@ -40,7 +57,10 @@ function HomePage() {
       return ''
     }
 
-    if (imageUrl.startsWith('http')) {
+    if (
+      imageUrl.startsWith('http://') ||
+      imageUrl.startsWith('https://')
+    ) {
       return imageUrl
     }
 
@@ -48,20 +68,54 @@ function HomePage() {
   }
 
   const fetchCurrentUser = async () => {
+    if (!hasToken()) {
+      setUser(null)
+      return null
+    }
+
     try {
       const data = await authFetch('/auth/me')
-      setUser(data.user)
+      const currentUser = data.user || null
+
+      setUser(currentUser)
+
+      return currentUser
     } catch {
+      localStorage.removeItem('token')
       setUser(null)
+
+      return null
     }
   }
 
-  const fetchAlbums = async () => {
+  const fetchAlbums = async (
+    authenticated = hasToken()
+  ) => {
     try {
-      const data = await publicFetch('/albums')
-      setAlbums(data)
+      setStatus('')
+
+      const data = authenticated
+        ? await authFetch('/albums/mine')
+        : await publicFetch('/albums')
+
+      const loadedAlbums = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.albums)
+          ? data.albums
+          : []
+
+      setAlbums(loadedAlbums)
+
+      return loadedAlbums
     } catch (error) {
-      setStatus(error.message)
+      setAlbums([])
+
+      setStatus(
+        error.message ||
+          'Não foi possível carregar os álbuns.'
+      )
+
+      return []
     }
   }
 
@@ -85,16 +139,28 @@ function HomePage() {
         ? `?${params.join('&')}`
         : ''
 
-      const data = await publicFetch(`/photos${query}`)
+      const data = await publicFetch(
+        `/photos${query}`
+      )
 
-      setPhotos(data)
+      const loadedPhotos = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.photos)
+          ? data.photos
+          : []
+
+      setPhotos(loadedPhotos)
 
       const likesEntries = await Promise.all(
-        data.map(async (photo) => {
+        loadedPhotos.map(async (photo) => {
           try {
-            const response = user
-              ? await authFetch(`/likes/photo/${photo._id}`)
-              : await publicFetch(`/likes/photo/${photo._id}`)
+            const response = hasToken()
+              ? await authFetch(
+                  `/likes/photo/${photo._id}`
+                )
+              : await publicFetch(
+                  `/likes/photo/${photo._id}`
+                )
 
             return {
               id: photo._id,
@@ -112,7 +178,7 @@ function HomePage() {
       )
 
       const commentsEntries = await Promise.all(
-        data.map(async (photo) => {
+        loadedPhotos.map(async (photo) => {
           try {
             const response = await publicFetch(
               `/comments/photo/${photo._id}`
@@ -141,7 +207,10 @@ function HomePage() {
         Object.fromEntries(commentsEntries)
       )
     } catch (error) {
-      setStatus(error.message)
+      setStatus(
+        error.message ||
+          'Não foi possível carregar as fotografias.'
+      )
     }
   }
 
@@ -165,9 +234,13 @@ function HomePage() {
 
   const fetchPhotoLikes = async (photoId) => {
     try {
-      const response = user
-        ? await authFetch(`/likes/photo/${photoId}`)
-        : await publicFetch(`/likes/photo/${photoId}`)
+      const response = hasToken()
+        ? await authFetch(
+            `/likes/photo/${photoId}`
+          )
+        : await publicFetch(
+            `/likes/photo/${photoId}`
+          )
 
       setPhotoLikes((previous) => ({
         ...previous,
@@ -211,8 +284,18 @@ function HomePage() {
     }))
   }
 
-  const handleCommentSubmit = async (event, photoId) => {
+  const handleCommentSubmit = async (
+    event,
+    photoId
+  ) => {
     event.preventDefault()
+
+    if (!hasToken()) {
+      setStatus(
+        'Tens de iniciar sessão para comentar.'
+      )
+      return
+    }
 
     const text = (
       commentInput[photoId] || ''
@@ -223,10 +306,13 @@ function HomePage() {
     }
 
     try {
-      await authFetch(`/comments/photo/${photoId}`, {
-        method: 'POST',
-        body: JSON.stringify({ text })
-      })
+      await authFetch(
+        `/comments/photo/${photoId}`,
+        {
+          method: 'POST',
+          body: JSON.stringify({ text })
+        }
+      )
 
       setCommentInput((previous) => ({
         ...previous,
@@ -234,13 +320,17 @@ function HomePage() {
       }))
 
       await fetchPhotoComments(photoId)
+
       setStatus('Comentário adicionado')
     } catch (error) {
       setStatus(error.message)
     }
   }
 
-  const handleEditComment = async (commentId, text) => {
+  const handleEditComment = async (
+    commentId,
+    text
+  ) => {
     try {
       await authFetch(`/comments/${commentId}`, {
         method: 'PUT',
@@ -248,7 +338,9 @@ function HomePage() {
       })
 
       if (selectedPhoto) {
-        await fetchPhotoComments(selectedPhoto._id)
+        await fetchPhotoComments(
+          selectedPhoto._id
+        )
       }
 
       setStatus('Comentário atualizado')
@@ -258,14 +350,18 @@ function HomePage() {
     }
   }
 
-  const handleDeleteComment = async (commentId) => {
+  const handleDeleteComment = async (
+    commentId
+  ) => {
     try {
       await authFetch(`/comments/${commentId}`, {
         method: 'DELETE'
       })
 
       if (selectedPhoto) {
-        await fetchPhotoComments(selectedPhoto._id)
+        await fetchPhotoComments(
+          selectedPhoto._id
+        )
       }
 
       setStatus('Comentário apagado')
@@ -276,6 +372,13 @@ function HomePage() {
   }
 
   const handleLikePhoto = async (photoId) => {
+    if (!hasToken()) {
+      setStatus(
+        'Tens de iniciar sessão para gostar de uma fotografia.'
+      )
+      return
+    }
+
     try {
       const response = await authFetch(
         `/likes/photo/${photoId}`,
@@ -344,7 +447,7 @@ function HomePage() {
       setStatus('Álbum criado')
       setIsCreateAlbumOpen(false)
 
-      await fetchAlbums()
+      await fetchAlbums(true)
     } catch (error) {
       setStatus(error.message)
     }
@@ -394,7 +497,7 @@ function HomePage() {
       setStatus('Fotografia adicionada')
       setIsAddPhotoOpen(false)
 
-      await fetchAlbums()
+      await fetchAlbums(true)
       await fetchPhotos()
     } catch (error) {
       setStatus(error.message)
@@ -448,7 +551,10 @@ function HomePage() {
               src={getImageUrl(
                 featuredPhoto.imageUrl
               )}
-              alt={featuredPhoto.title}
+              alt={
+                featuredPhoto.title ||
+                'Fotografia em destaque'
+              }
             />
           ) : (
             <div className="lumen-hero-placeholder">

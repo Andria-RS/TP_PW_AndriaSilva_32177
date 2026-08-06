@@ -328,7 +328,6 @@ button {
 .photo-card,
 .album-card,
 .lumen-photo-card {
-  overflow: hidden;
   border: 1px solid rgba(24, 24, 27, 0.06);
   background: var(--color-surface);
   box-shadow: 0 12px 30px rgba(15, 23, 42, 0.04);
@@ -336,10 +335,12 @@ button {
 
 .photo-card,
 .album-card {
+  overflow: hidden;
   border-radius: 24px;
 }
 
 .lumen-photo-card {
+  overflow: hidden;
   border-radius: 20px;
 }
 
@@ -419,6 +420,168 @@ button {
 .album-title-link:hover,
 .album-inline-link:hover {
   text-decoration: underline;
+}
+
+/* MENU DOS ÁLBUNS */
+
+.profile-album-card {
+  position: relative;
+}
+
+.album-card-menu-wrapper {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 100;
+}
+
+.album-card-menu-button {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--color-text);
+  font-size: 1.5rem;
+  font-weight: 800;
+  line-height: 1;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.14);
+  transition: var(--transition-fast);
+}
+
+.album-card-menu-button:hover,
+.album-card-menu-button[aria-expanded='true'] {
+  background: var(--color-primary);
+  color: white;
+  transform: scale(1.05);
+}
+
+.album-card-menu {
+  position: absolute;
+  top: 46px;
+  right: 0;
+  z-index: 200;
+  min-width: 140px;
+  display: grid;
+  gap: 4px;
+  padding: 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  background: white;
+  box-shadow: var(--shadow-medium);
+}
+
+.album-card-menu button {
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--color-text-soft);
+  text-align: left;
+  font-weight: 600;
+}
+
+.album-card-menu button:hover {
+  background: var(--color-primary-soft);
+  color: var(--color-primary-dark);
+}
+
+.album-card-menu .album-menu-delete {
+  color: var(--color-danger);
+}
+
+.album-card-menu .album-menu-delete:hover {
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+
+/* MENU DAS FOTOGRAFIAS */
+
+.profile-photo-card {
+  position: relative;
+  overflow: visible;
+}
+
+.profile-photo-card > img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 24px 24px 0 0;
+}
+
+.photo-card-menu-wrapper {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 100;
+}
+
+.photo-card-menu-button {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--color-text);
+  font-size: 1.5rem;
+  font-weight: 800;
+  line-height: 1;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.14);
+  transition: var(--transition-fast);
+}
+
+.photo-card-menu-button:hover,
+.photo-card-menu-button[aria-expanded='true'] {
+  background: var(--color-primary);
+  color: white;
+  transform: scale(1.05);
+}
+
+.photo-card-menu {
+  position: absolute;
+  top: 46px;
+  right: 0;
+  z-index: 200;
+  min-width: 140px;
+  display: grid;
+  gap: 4px;
+  padding: 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  background: white;
+  box-shadow: var(--shadow-medium);
+}
+
+.photo-card-menu button {
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--color-text-soft);
+  text-align: left;
+  font-weight: 600;
+}
+
+.photo-card-menu button:hover {
+  background: var(--color-primary-soft);
+  color: var(--color-primary-dark);
+}
+
+.photo-card-menu .photo-menu-delete {
+  color: var(--color-danger);
+}
+
+.photo-card-menu .photo-menu-delete:hover {
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
 }
 
 /* FORMULÁRIOS */
@@ -734,83 +897,6 @@ button {
 
 .lumen-photo-card-clickable:hover {
   transform: translateY(-4px);
-}
-
-/* MENU DOS ÁLBUNS */
-
-.profile-album-card {
-  position: relative;
-}
-
-.album-card-menu-wrapper {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  z-index: 10;
-}
-
-.album-card-menu-button {
-  width: 38px;
-  height: 38px;
-  display: grid;
-  place-items: center;
-  padding: 0;
-  border: none;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.95);
-  color: var(--color-text);
-  font-size: 1.5rem;
-  font-weight: 800;
-  line-height: 1;
-  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.14);
-  transition: var(--transition-fast);
-}
-
-.album-card-menu-button:hover,
-.album-card-menu-button[aria-expanded='true'] {
-  background: var(--color-primary);
-  color: white;
-  transform: scale(1.05);
-}
-
-.album-card-menu {
-  position: absolute;
-  top: 46px;
-  right: 0;
-  z-index: 20;
-  min-width: 140px;
-  display: grid;
-  gap: 4px;
-  padding: 8px;
-  border: 1px solid var(--color-border);
-  border-radius: 14px;
-  background: white;
-  box-shadow: var(--shadow-medium);
-}
-
-.album-card-menu button {
-  width: 100%;
-  padding: 10px 12px;
-  border: none;
-  border-radius: 10px;
-  background: transparent;
-  color: var(--color-text-soft);
-  text-align: left;
-  font-weight: 600;
-}
-
-.album-card-menu button:hover {
-  background: var(--color-primary-soft);
-  color: var(--color-primary-dark);
-}
-
-.album-card-menu .album-menu-delete {
-  color: var(--color-danger);
-}
-
-.album-card-menu .album-menu-delete:hover {
-  background: var(--color-danger-soft);
-  color: var(--color-danger);
 }
 
 /* MODAL DE FOTOGRAFIA */
@@ -1390,6 +1476,11 @@ button {
   opacity: 1;
 }
 
+.photo-create-primary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 /* PÁGINA ALBUM SEARCH */
 
 .albums-page .lumen-logo {
@@ -1737,7 +1828,10 @@ button {
   }
 
   .albums-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(
+      2,
+      minmax(0, 1fr)
+    );
   }
 }
 

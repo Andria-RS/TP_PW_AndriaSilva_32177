@@ -1,5 +1,5 @@
-import { Link, useNavigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { authFetch } from '../services/api.js'
 
 function Navbar() {
@@ -7,17 +7,17 @@ function Navbar() {
   const [user, setUser] = useState(null)
 
   useEffect(() => {
+    const fetchCurrentUser = async () => {
+      try {
+        const data = await authFetch('/auth/me')
+        setUser(data.user)
+      } catch {
+        setUser(null)
+      }
+    }
+
     fetchCurrentUser()
   }, [])
-
-  const fetchCurrentUser = async () => {
-    try {
-      const data = await authFetch('/auth/me')
-      setUser(data.user)
-    } catch {
-      setUser(null)
-    }
-  }
 
   const handleLogout = () => {
     localStorage.removeItem('token')
@@ -40,20 +40,16 @@ function Navbar() {
       <div className="lumen-nav-actions">
         {user ? (
           <>
-            <Link className="button-link" to="/profile">
+            <Link to="/profile" className="button-link">
               Perfil
             </Link>
 
-            <button
-              type="button"
-              className="button-link"
-              onClick={handleLogout}
-            >
+            <button type="button" className="button-link" onClick={handleLogout}>
               Sair
             </button>
           </>
         ) : (
-          <Link className="button-link" to="/login">
+          <Link to="/login" className="button-link">
             Entrar
           </Link>
         )}

@@ -1,4 +1,3 @@
-import React from 'react'
 import { Link } from 'react-router-dom'
 
 function PhotoCard({
@@ -9,18 +8,28 @@ function PhotoCard({
   getImageUrl,
   showAlbumLink = false
 }) {
+  const handleOpen = () => {
+    onOpen(photo)
+  }
+
+  const handleKeyDown = (event) => {
+    if (event.key !== 'Enter' && event.key !== ' ') return
+
+    event.preventDefault()
+    handleOpen()
+  }
+
+  const authorName = photo.author?.name || 'Anónimo'
+  const albumId = photo.album?._id
+  const albumName = photo.album?.name || 'Álbum'
+
   return (
     <article
       className="lumen-photo-card lumen-photo-card-clickable"
-      onClick={() => onOpen(photo)}
+      onClick={handleOpen}
+      onKeyDown={handleKeyDown}
       role="button"
       tabIndex={0}
-      onKeyDown={(event) => {
-        if (event.key === 'Enter' || event.key === ' ') {
-          event.preventDefault()
-          onOpen(photo)
-        }
-      }}
     >
       <div className="lumen-photo-thumb">
         <img src={getImageUrl(photo.imageUrl)} alt={photo.title} />
@@ -33,7 +42,7 @@ function PhotoCard({
         </div>
 
         <div className="lumen-photo-meta">
-          <small>{photo.author?.name || 'Anónimo'}</small>
+          <small>{authorName}</small>
         </div>
       </div>
 
@@ -41,15 +50,15 @@ function PhotoCard({
         <div className="refined-meta-row">
           <span>{photo.theme}</span>
 
-          {showAlbumLink && photo.album?._id ? (
+          {showAlbumLink && albumId && (
             <Link
-              to={`/albums/${photo.album._id}`}
+              to={`/albums/${albumId}`}
               className="album-inline-link"
               onClick={(event) => event.stopPropagation()}
             >
-              {photo.album.name || 'Álbum'}
+              {albumName}
             </Link>
-          ) : null}
+          )}
         </div>
 
         <strong>{photo.title}</strong>

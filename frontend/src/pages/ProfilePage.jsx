@@ -12,19 +12,37 @@ function ProfilePage() {
   const [photos, setPhotos] = useState([])
   const [status, setStatus] = useState('')
 
-  const [isCreateAlbumOpen, setIsCreateAlbumOpen] = useState(false)
-  const [isAddPhotoOpen, setIsAddPhotoOpen] = useState(false)
-  const [openMenuId, setOpenMenuId] = useState(null)
-  const [editingAlbum, setEditingAlbum] = useState(null)
+  const [isCreateAlbumOpen, setIsCreateAlbumOpen] =
+    useState(false)
+
+  const [isAddPhotoOpen, setIsAddPhotoOpen] =
+    useState(false)
+
+  const [openMenuId, setOpenMenuId] =
+    useState(null)
+
+  const [openPhotoMenuId, setOpenPhotoMenuId] =
+    useState(null)
+
+  const [editingAlbum, setEditingAlbum] =
+    useState(null)
+
+  const [editingPhoto, setEditingPhoto] =
+    useState(null)
 
   useEffect(() => {
     fetchProfileData()
   }, [])
 
   const getImageUrl = (imageUrl) => {
-    if (!imageUrl) return ''
+    if (!imageUrl) {
+      return ''
+    }
 
-    if (imageUrl.startsWith('http')) {
+    if (
+      imageUrl.startsWith('http://') ||
+      imageUrl.startsWith('https://')
+    ) {
       return imageUrl
     }
 
@@ -33,17 +51,41 @@ function ProfilePage() {
 
   const fetchProfileData = async () => {
     try {
-      const [profile, userAlbums, allPhotos] = await Promise.all([
+      const [
+        profileResponse,
+        albumsResponse,
+        photosResponse
+      ] = await Promise.all([
         authFetch('/auth/me'),
         authFetch('/albums/mine'),
         authFetch('/photos/mine')
       ])
 
-      setUser(profile.user)
-      setAlbums(userAlbums)
-      setPhotos(allPhotos)
+      const loadedAlbums = Array.isArray(
+        albumsResponse
+      )
+        ? albumsResponse
+        : Array.isArray(albumsResponse?.albums)
+          ? albumsResponse.albums
+          : []
+
+      const loadedPhotos = Array.isArray(
+        photosResponse
+      )
+        ? photosResponse
+        : Array.isArray(photosResponse?.photos)
+          ? photosResponse.photos
+          : []
+
+      setUser(profileResponse.user)
+      setAlbums(loadedAlbums)
+      setPhotos(loadedPhotos)
     } catch (error) {
-      setStatus(error.message)
+      setStatus(
+        error.message ||
+          'Não foi possível carregar o perfil.'
+      )
+
       navigate('/login')
     }
   }
@@ -70,6 +112,38 @@ function ProfilePage() {
     setIsCreateAlbumOpen(false)
   }
 
+  const handleOpenCreatePhoto = () => {
+    setEditingPhoto(null)
+    setOpenPhotoMenuId(null)
+    setIsAddPhotoOpen(true)
+  }
+
+  const handleOpenEditPhoto = (photo) => {
+    setEditingPhoto(photo)
+    setOpenPhotoMenuId(null)
+    setIsAddPhotoOpen(true)
+  }
+
+  const handleClosePhotoModal = () => {
+    setEditingPhoto(null)
+    setIsAddPhotoOpen(false)
+  }
+
+  const getPhotoAlbumId = (photo) => {
+    if (!photo?.albumId) {
+      return ''
+    }
+
+    if (
+      typeof photo.albumId === 'object' &&
+      photo.albumId._id
+    ) {
+      return photo.albumId._id
+    }
+
+    return photo.albumId
+  }
+
   const handleAlbumSubmit = async ({
     name,
     description,
@@ -82,21 +156,36 @@ function ProfilePage() {
       const formData = new FormData()
 
       formData.append('name', name)
-      formData.append('description', description || '')
+      formData.append(
+        'description',
+        description || ''
+      )
       formData.append('theme', theme)
-      formData.append('isPublic', String(isPublic))
+      formData.append(
+        'isPublic',
+        String(isPublic)
+      )
 
       if (coverImageFile) {
-        formData.append('coverImage', coverImageFile)
+        formData.append(
+          'coverImage',
+          coverImageFile
+        )
       } else if (coverImageUrl) {
-        formData.append('coverImageUrl', coverImageUrl)
+        formData.append(
+          'coverImageUrl',
+          coverImageUrl
+        )
       }
 
       if (editingAlbum) {
-        await authFetch(`/albums/${editingAlbum._id}`, {
-          method: 'PUT',
-          body: formData
-        })
+        await authFetch(
+          `/albums/${editingAlbum._id}`,
+          {
+            method: 'PUT',
+            body: formData
+          }
+        )
 
         setStatus('Álbum atualizado')
       } else {
@@ -128,10 +217,22 @@ function ProfilePage() {
       const formData = new FormData()
 
       formData.append('title', title)
-      formData.append('description', description || '')
-      formData.append('albumId', albumId || '')
-      formData.append('theme', theme || '')
-      formData.append('isPublic', String(isPublic))
+      formData.append(
+        'description',
+        description || ''
+      )
+      formData.append(
+        'albumId',
+        albumId || ''
+      )
+      formData.append(
+        'theme',
+        theme || ''
+      )
+      formData.append(
+        'isPublic',
+        String(isPublic)
+      )
 
       if (photoFile) {
         formData.append('image', photoFile)
@@ -139,14 +240,26 @@ function ProfilePage() {
         formData.append('imageUrl', imageUrl)
       }
 
-      await authFetch('/photos', {
-        method: 'POST',
-        body: formData
-      })
+      if (editingPhoto) {
+        await authFetch(
+          `/photos/${editingPhoto._id}`,
+          {
+            method: 'PUT',
+            body: formData
+          }
+        )
 
-      setStatus('Fotografia adicionada')
-      setIsAddPhotoOpen(false)
+        setStatus('Fotografia atualizada')
+      } else {
+        await authFetch('/photos', {
+          method: 'POST',
+          body: formData
+        })
 
+        setStatus('Fotografia adicionada')
+      }
+
+      handleClosePhotoModal()
       await fetchProfileData()
     } catch (error) {
       setStatus(error.message)
@@ -158,7 +271,9 @@ function ProfilePage() {
       'Tens a certeza que queres apagar este álbum?'
     )
 
-    if (!confirmed) return
+    if (!confirmed) {
+      return
+    }
 
     try {
       await authFetch(`/albums/${albumId}`, {
@@ -174,10 +289,35 @@ function ProfilePage() {
     }
   }
 
+  const handleDeletePhoto = async (photoId) => {
+    const confirmed = window.confirm(
+      'Tens a certeza que queres apagar esta fotografia?'
+    )
+
+    if (!confirmed) {
+      return
+    }
+
+    try {
+      await authFetch(`/photos/${photoId}`, {
+        method: 'DELETE'
+      })
+
+      setOpenPhotoMenuId(null)
+      setStatus('Fotografia apagada')
+
+      await fetchProfileData()
+    } catch (error) {
+      setStatus(error.message)
+    }
+  }
+
   if (!user) {
     return (
       <div className="auth-shell">
-        <p className="status-message">A carregar...</p>
+        <p className="status-message">
+          A carregar...
+        </p>
       </div>
     )
   }
@@ -188,13 +328,20 @@ function ProfilePage() {
         <div>
           <span>Perfil</span>
 
-          <h1>Bem-vind@, {user.name}</h1>
+          <h1>
+            Bem-vind@, {user.name}
+          </h1>
 
-          <p>Gere os teus álbuns e partilha as tuas fotos.</p>
+          <p>
+            Gere os teus álbuns e partilha as tuas fotos.
+          </p>
         </div>
 
         <div className="header-actions">
-          <Link className="button-link" to="/">
+          <Link
+            className="button-link"
+            to="/"
+          >
             Voltar à página principal
           </Link>
 
@@ -229,16 +376,25 @@ function ProfilePage() {
           ) : (
             <div className="photo-grid">
               {albums.map((album) => (
-                <div key={album._id} className="album-card profile-album-card">
+                <div
+                  key={album._id}
+                  className="album-card profile-album-card"
+                >
                   <div className="album-card-menu-wrapper">
                     <button
                       type="button"
                       className="album-card-menu-button"
-                      aria-label={`Abrir opções do álbum ${album.name}`}
-                      aria-expanded={openMenuId === album._id}
+                      aria-label={
+                        `Abrir opções do álbum ${album.name}`
+                      }
+                      aria-expanded={
+                        openMenuId === album._id
+                      }
                       onClick={() => {
                         setOpenMenuId((currentId) =>
-                          currentId === album._id ? null : album._id
+                          currentId === album._id
+                            ? null
+                            : album._id
                         )
                       }}
                     >
@@ -249,7 +405,9 @@ function ProfilePage() {
                       <div className="album-card-menu">
                         <button
                           type="button"
-                          onClick={() => handleOpenEditAlbum(album)}
+                          onClick={() =>
+                            handleOpenEditAlbum(album)
+                          }
                         >
                           Editar
                         </button>
@@ -257,7 +415,11 @@ function ProfilePage() {
                         <button
                           type="button"
                           className="album-menu-delete"
-                          onClick={() => handleDeleteAlbum(album._id)}
+                          onClick={() =>
+                            handleDeleteAlbum(
+                              album._id
+                            )
+                          }
                         >
                           Apagar
                         </button>
@@ -267,7 +429,9 @@ function ProfilePage() {
 
                   {album.coverImageUrl ? (
                     <img
-                      src={getImageUrl(album.coverImageUrl)}
+                      src={getImageUrl(
+                        album.coverImageUrl
+                      )}
                       alt={album.name}
                       className="album-cover"
                     />
@@ -285,14 +449,19 @@ function ProfilePage() {
                       <strong>{album.name}</strong>
                     </Link>
 
-                    <span>{album.theme}</span>
+                    <span>
+                      {album.theme || 'Sem tema'}
+                    </span>
 
                     <p>
-                      {album.description || 'Sem descrição.'}
+                      {album.description ||
+                        'Sem descrição.'}
                     </p>
 
                     <small>
-                      {album.isPublic ? 'Público' : 'Privado'}
+                      {album.isPublic
+                        ? 'Público'
+                        : 'Privado'}
                     </small>
                   </div>
                 </div>
@@ -308,7 +477,7 @@ function ProfilePage() {
             <button
               type="button"
               className="button-link"
-              onClick={() => setIsAddPhotoOpen(true)}
+              onClick={handleOpenCreatePhoto}
             >
               Publicar foto
             </button>
@@ -321,15 +490,77 @@ function ProfilePage() {
           ) : (
             <div className="photo-grid small-grid">
               {photos.map((photo) => (
-                <div key={photo._id} className="photo-card">
+                <div
+                  key={photo._id}
+                  className="photo-card profile-photo-card"
+                >
+                  <div className="photo-card-menu-wrapper">
+                    <button
+                      type="button"
+                      className="photo-card-menu-button"
+                      aria-label={
+                        `Abrir opções da fotografia ${photo.title}`
+                      }
+                      aria-expanded={
+                        openPhotoMenuId === photo._id
+                      }
+                      onClick={() => {
+                        setOpenPhotoMenuId(
+                          (currentId) =>
+                            currentId === photo._id
+                              ? null
+                              : photo._id
+                        )
+                      }}
+                    >
+                      ⋯
+                    </button>
+
+                    {openPhotoMenuId === photo._id && (
+                      <div className="photo-card-menu">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleOpenEditPhoto(photo)
+                          }
+                        >
+                          Editar
+                        </button>
+
+                        <button
+                          type="button"
+                          className="photo-menu-delete"
+                          onClick={() =>
+                            handleDeletePhoto(
+                              photo._id
+                            )
+                          }
+                        >
+                          Apagar
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
                   <img
-                    src={getImageUrl(photo.imageUrl)}
+                    src={getImageUrl(
+                      photo.imageUrl
+                    )}
                     alt={photo.title}
                   />
 
                   <div className="photo-info">
                     <strong>{photo.title}</strong>
-                    <span>{photo.theme}</span>
+
+                    <span>
+                      {photo.theme || 'Sem tema'}
+                    </span>
+
+                    <small>
+                      {photo.isPublic
+                        ? 'Público'
+                        : 'Privado'}
+                    </small>
                   </div>
                 </div>
               ))}
@@ -352,10 +583,12 @@ function ProfilePage() {
           editingAlbum
             ? {
                 name: editingAlbum.name,
-                description: editingAlbum.description || '',
-                theme: editingAlbum.theme,
+                description:
+                  editingAlbum.description || '',
+                theme: editingAlbum.theme || '',
                 isPublic: editingAlbum.isPublic,
-                coverImageUrl: editingAlbum.coverImageUrl || ''
+                coverImageUrl:
+                  editingAlbum.coverImageUrl || ''
               }
             : undefined
         }
@@ -363,9 +596,26 @@ function ProfilePage() {
 
       <CreatePhotoModal
         isOpen={isAddPhotoOpen}
-        onClose={() => setIsAddPhotoOpen(false)}
+        onClose={handleClosePhotoModal}
         onSubmit={handleAddPhoto}
         albums={albums}
+        initialValues={
+          editingPhoto
+            ? {
+                title: editingPhoto.title || '',
+                description:
+                  editingPhoto.description || '',
+                albumId: getPhotoAlbumId(
+                  editingPhoto
+                ),
+                theme: editingPhoto.theme || '',
+                isPublic:
+                  editingPhoto.isPublic !== false,
+                imageUrl:
+                  editingPhoto.imageUrl || ''
+              }
+            : undefined
+        }
       />
     </main>
   )
