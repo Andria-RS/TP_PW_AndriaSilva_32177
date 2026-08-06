@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { publicFetch } from '../services/api.js'
+import { ALLOWED_THEMES } from '../constants/themes.js'
 import Navbar from '../components/Navbar.jsx'
 
-function AlbumsPage() {
+function AlbumSearch() {
   const [albums, setAlbums] = useState([])
   const [searchTerm, setSearchTerm] = useState('')
+  const [themeFilter, setThemeFilter] = useState('')
   const [status, setStatus] = useState('')
   const [isLoading, setIsLoading] = useState(true)
 
@@ -14,9 +16,14 @@ function AlbumsPage() {
   }, [])
 
   const getImageUrl = (imageUrl) => {
-    if (!imageUrl) return ''
+    if (!imageUrl) {
+      return ''
+    }
 
-    if (imageUrl.startsWith('http')) {
+    if (
+      imageUrl.startsWith('http://') ||
+      imageUrl.startsWith('https://')
+    ) {
       return imageUrl
     }
 
@@ -26,35 +33,98 @@ function AlbumsPage() {
   const fetchAlbums = async () => {
     try {
       setIsLoading(true)
+      setStatus('')
 
       const data = await publicFetch('/albums')
-      setAlbums(data)
+
+      setAlbums(Array.isArray(data) ? data : [])
     } catch (error) {
-      setStatus(error.message)
+      setStatus(
+        error.message ||
+          'Não foi possível carregar os álbuns.'
+      )
     } finally {
       setIsLoading(false)
     }
   }
+
+  const themeSuggestions = useMemo(() => {
+    const usedThemes = new Set(
+      albums
+        .map((album) => album.theme)
+        .filter(Boolean)
+    )
+
+    return ALLOWED_THEMES.filter((theme) =>
+      usedThemes.has(theme)
+    )
+  }, [albums])
 
   const filteredAlbums = useMemo(() => {
     const normalizedSearch = searchTerm
       .trim()
       .toLowerCase()
 
-    if (!normalizedSearch) {
-      return albums
+    return albums.filter((album) => {
+      const albumName = String(
+        album.name || ''
+      ).toLowerCase()
+
+      const matchesName =
+        !normalizedSearch ||
+        albumName.includes(normalizedSearch)
+
+      const matchesTheme =
+        !themeFilter ||
+        album.theme === themeFilter
+
+      return matchesName && matchesTheme
+    })
+  }, [albums, searchTerm, themeFilter])
+
+  const handleThemeClick = (theme) => {
+    setThemeFilter(theme)
+  }
+
+  const clearThemeFilter = () => {
+    setThemeFilter('')
+  }
+
+  const handleSearchChange = (event) => {
+    setSearchTerm(event.target.value)
+  }
+
+  const clearSearch = () => {
+    setSearchTerm('')
+  }
+
+  const getResultsTitle = () => {
+    if (searchTerm.trim()) {
+      return `Resultados para "${searchTerm}"`
     }
 
-    return albums.filter((album) => {
-      const albumName = (album.name || '').toLowerCase()
-      const albumTheme = (album.theme || '').toLowerCase()
+    if (themeFilter) {
+      return themeFilter
+    }
 
-      return (
-        albumName.includes(normalizedSearch) ||
-        albumTheme.includes(normalizedSearch)
-      )
-    })
-  }, [albums, searchTerm])
+    return 'Todos os álbuns'
+  }
+
+  const getEmptyMessage = () => {
+    if (searchTerm.trim() && themeFilter) {
+      return 'Não foram encontrados álbuns com esse nome nesse tema.'
+    }
+
+    if (searchTerm.trim()) {
+      return 'Não foram encontrados álbuns com esse nome.'
+    }
+
+    if (themeFilter) {
+      return `Não foram encontrados álbuns do tema "${themeFilter}".`
+    }
+
+    return 'Ainda não existem álbuns públicos.'
+  }
 
   return (
     <main className="app-shell albums-page">
@@ -69,14 +139,14 @@ function AlbumsPage() {
           <h1>Explora álbuns</h1>
 
           <p>
-            Pesquisa por nome ou tema e encontra novas
-            fotografias para explorar.
+            Pesquisa pelo nome do álbum ou seleciona
+            um tema para encontrares novas fotografias.
           </p>
         </div>
 
         <div className="albums-search-wrapper">
           <label htmlFor="album-search">
-            Pesquisar álbuns
+            Pesquisar pelo nome
           </label>
 
           <div className="albums-search-box">
@@ -86,17 +156,15 @@ function AlbumsPage() {
               id="album-search"
               type="search"
               value={searchTerm}
-              onChange={(event) =>
-                setSearchTerm(event.target.value)
-              }
-              placeholder="Nome do álbum ou tema..."
+              onChange={handleSearchChange}
+              placeholder="Nome do álbum..."
             />
 
             {searchTerm && (
               <button
                 type="button"
                 className="albums-search-clear"
-                onClick={() => setSearchTerm('')}
+                onClick={clearSearch}
                 aria-label="Limpar pesquisa"
               >
                 ✕
@@ -106,12 +174,37 @@ function AlbumsPage() {
         </div>
       </section>
 
+      <section className="explore-filter-bar albums-filter-bar">
+        <button
+          type="button"
+          className={
+            !themeFilter
+              ? 'theme-chip active'
+              : 'theme-chip'
+          }
+          onClick={clearThemeFilter}
+        >
+          Todos
+        </button>
+
+        {themeSuggestions.map((theme) => (
+          <button
+            key={theme}
+            type="button"
+            className={
+              themeFilter === theme
+                ? 'theme-chip active'
+                : 'theme-chip'
+            }
+            onClick={() => handleThemeClick(theme)}
+          >
+            {theme}
+          </button>
+        ))}
+      </section>
+
       <section className="albums-results-header">
-        <h2>
-          {searchTerm
-            ? `Resultados para "${searchTerm}"`
-            : 'Todos os álbuns'}
-        </h2>
+        <h2>{getResultsTitle()}</h2>
 
         <span>
           {filteredAlbums.length}{' '}
@@ -133,9 +226,7 @@ function AlbumsPage() {
         </div>
       ) : filteredAlbums.length === 0 ? (
         <div className="empty-state albums-empty-state">
-          {searchTerm
-            ? 'Não foram encontrados álbuns com essa pesquisa.'
-            : 'Ainda não existem álbuns públicos.'}
+          {getEmptyMessage()}
         </div>
       ) : (
         <section className="albums-grid">
@@ -150,8 +241,12 @@ function AlbumsPage() {
               >
                 {album.coverImageUrl ? (
                   <img
-                    src={getImageUrl(album.coverImageUrl)}
-                    alt={album.name}
+                    src={getImageUrl(
+                      album.coverImageUrl
+                    )}
+                    alt={
+                      album.name || 'Capa do álbum'
+                    }
                     className="public-album-cover"
                   />
                 ) : (
@@ -163,23 +258,27 @@ function AlbumsPage() {
 
               <div className="public-album-content">
                 <span className="public-album-theme">
-                  {album.theme}
+                  {album.theme || 'Sem tema'}
                 </span>
 
                 <Link
                   to={`/albums/${album._id}`}
                   className="public-album-title"
                 >
-                  {album.name}
+                  {album.name || 'Álbum sem nome'}
                 </Link>
 
                 <p>
-                  {album.description || 'Sem descrição.'}
+                  {album.description ||
+                    'Sem descrição.'}
                 </p>
 
                 <div className="public-album-footer">
                   <small>
-                    Por {album.owner?.name || 'Utilizador'}
+                    Por{' '}
+                    {album.owner?.name ||
+                      album.owner?.username ||
+                      'Utilizador'}
                   </small>
 
                   <Link
