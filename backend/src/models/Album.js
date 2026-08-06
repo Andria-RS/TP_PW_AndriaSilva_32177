@@ -6,6 +6,7 @@ const albumSchema = new mongoose.Schema(
     description: { type: String },
     theme: { type: String, required: true },
     coverImageUrl: { type: String },
+    coverImagePublicId: { type: String },
     isPublic: { type: Boolean, default: true },
     owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }
   },

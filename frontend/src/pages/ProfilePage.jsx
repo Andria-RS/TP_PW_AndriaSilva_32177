@@ -6,6 +6,7 @@ import CreatePhotoModal from '../components/CreatePhotoModal.jsx'
 
 function ProfilePage() {
   const navigate = useNavigate()
+
   const [user, setUser] = useState(null)
   const [albums, setAlbums] = useState([])
   const [photos, setPhotos] = useState([])
@@ -19,7 +20,11 @@ function ProfilePage() {
 
   const getImageUrl = (imageUrl) => {
     if (!imageUrl) return ''
-    if (imageUrl.startsWith('http')) return imageUrl
+
+    if (imageUrl.startsWith('http')) {
+      return imageUrl
+    }
+
     return `http://localhost:4000${imageUrl}`
   }
 
@@ -55,8 +60,9 @@ function ProfilePage() {
   }) => {
     try {
       const formData = new FormData()
+
       formData.append('name', name)
-      formData.append('description', description)
+      formData.append('description', description || '')
       formData.append('theme', theme)
       formData.append('isPublic', String(isPublic))
 
@@ -73,7 +79,8 @@ function ProfilePage() {
 
       setStatus('Álbum criado')
       setIsCreateAlbumOpen(false)
-      fetchProfileData()
+
+      await fetchProfileData()
     } catch (error) {
       setStatus(error.message)
     }
@@ -83,14 +90,19 @@ function ProfilePage() {
     title,
     description,
     albumId,
+    theme,
+    isPublic,
     photoFile,
     imageUrl
   }) => {
     try {
       const formData = new FormData()
+
       formData.append('title', title)
-      formData.append('description', description)
-      formData.append('albumId', albumId)
+      formData.append('description', description || '')
+      formData.append('albumId', albumId || '')
+      formData.append('theme', theme || '')
+      formData.append('isPublic', String(isPublic))
 
       if (photoFile) {
         formData.append('image', photoFile)
@@ -105,14 +117,18 @@ function ProfilePage() {
 
       setStatus('Fotografia adicionada')
       setIsAddPhotoOpen(false)
-      fetchProfileData()
+
+      await fetchProfileData()
     } catch (error) {
       setStatus(error.message)
     }
   }
 
   const handleDeleteAlbum = async (albumId) => {
-    const confirmed = window.confirm('Tens a certeza que queres apagar este álbum?')
+    const confirmed = window.confirm(
+      'Tens a certeza que queres apagar este álbum?'
+    )
+
     if (!confirmed) return
 
     try {
@@ -121,7 +137,8 @@ function ProfilePage() {
       })
 
       setStatus('Álbum apagado')
-      fetchProfileData()
+
+      await fetchProfileData()
     } catch (error) {
       setStatus(error.message)
     }
@@ -140,13 +157,24 @@ function ProfilePage() {
       <header className="hero-banner">
         <div>
           <span>Perfil</span>
-          <h1>Bem-vindo, {user.name}</h1>
+
+          <h1>Bem-vind@, {user.name}</h1>
+
           <p>Gere os teus álbuns e partilha as tuas fotos.</p>
         </div>
 
         <div className="header-actions">
-          <Link className="button-link" to="/">Voltar à galeria</Link>
-          <button type="button" onClick={handleLogout}>Logout</button>
+          <Link className="button-link" to="/">
+            Voltar à galeria
+          </Link>
+
+          <button
+            type="button"
+            className="button-link"
+            onClick={handleLogout}
+          >
+            Sair
+          </button>
         </div>
       </header>
 
@@ -157,7 +185,7 @@ function ProfilePage() {
 
             <button
               type="button"
-              className="hero-main-btn"
+              className="button-link"
               onClick={() => setIsCreateAlbumOpen(true)}
             >
               Criar álbum
@@ -165,7 +193,9 @@ function ProfilePage() {
           </div>
 
           {albums.length === 0 ? (
-            <div className="empty-state">Ainda não criou álbuns.</div>
+            <div className="empty-state">
+              Ainda não criou álbuns.
+            </div>
           ) : (
             <div className="photo-grid">
               {albums.map((album) => (
@@ -177,19 +207,35 @@ function ProfilePage() {
                       className="album-cover"
                     />
                   ) : (
-                    <div className="album-cover placeholder">Sem capa</div>
+                    <div className="album-cover placeholder">
+                      Sem capa
+                    </div>
                   )}
 
                   <div className="photo-info">
-                    <Link to={`/albums/${album._id}`} className="album-title-link">
+                    <Link
+                      to={`/albums/${album._id}`}
+                      className="album-title-link"
+                    >
                       <strong>{album.name}</strong>
                     </Link>
+
                     <span>{album.theme}</span>
-                    <p>{album.description}</p>
-                    <small>{album.isPublic ? 'Público' : 'Privado'}</small>
+
+                    <p>
+                      {album.description || 'Sem descrição.'}
+                    </p>
+
+                    <small>
+                      {album.isPublic ? 'Público' : 'Privado'}
+                    </small>
 
                     <div className="album-card-actions">
-                      <button type="button" onClick={() => handleDeleteAlbum(album._id)}>
+                      <button
+                        type="button"
+                        className="danger-button"
+                        onClick={() => handleDeleteAlbum(album._id)}
+                      >
                         Apagar
                       </button>
                     </div>
@@ -206,7 +252,7 @@ function ProfilePage() {
 
             <button
               type="button"
-              className="hero-main-btn"
+              className="button-link"
               onClick={() => setIsAddPhotoOpen(true)}
             >
               Publicar foto
@@ -214,7 +260,9 @@ function ProfilePage() {
           </div>
 
           {photos.length === 0 ? (
-            <div className="empty-state">Ainda não adicionou fotos.</div>
+            <div className="empty-state">
+              Ainda não adicionou fotos.
+            </div>
           ) : (
             <div className="photo-grid small-grid">
               {photos.map((photo) => (
@@ -223,6 +271,7 @@ function ProfilePage() {
                     src={getImageUrl(photo.imageUrl)}
                     alt={photo.title}
                   />
+
                   <div className="photo-info">
                     <strong>{photo.title}</strong>
                     <span>{photo.theme}</span>
@@ -232,7 +281,11 @@ function ProfilePage() {
             </div>
           )}
 
-          {status && <p className="status-message">{status}</p>}
+          {status && (
+            <p className="status-message">
+              {status}
+            </p>
+          )}
         </aside>
       </section>
 

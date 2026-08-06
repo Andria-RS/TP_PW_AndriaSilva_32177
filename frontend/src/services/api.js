@@ -24,9 +24,14 @@ const parseResponse = async (response) => {
 export const authFetch = async (url, options = {}) => {
   const isFormData = options.body instanceof FormData
   const headers = {
-    ...(!isFormData ? { 'Content-Type': 'application/json' } : {}),
     ...getAuthHeaders(),
     ...options.headers
+  }
+
+  if (!isFormData) {
+    headers['Content-Type'] = headers['Content-Type'] || 'application/json'
+  } else {
+    delete headers['Content-Type']
   }
 
   const response = await fetch(`${API_BASE}${url}`, {
@@ -35,7 +40,6 @@ export const authFetch = async (url, options = {}) => {
   })
 
   let data
-
   try {
     data = await parseResponse(response)
   } catch (error) {
@@ -56,8 +60,13 @@ export const authFetch = async (url, options = {}) => {
 export const publicFetch = async (url, options = {}) => {
   const isFormData = options.body instanceof FormData
   const headers = {
-    ...(!isFormData ? { 'Content-Type': 'application/json' } : {}),
     ...options.headers
+  }
+
+  if (!isFormData) {
+    headers['Content-Type'] = headers['Content-Type'] || 'application/json'
+  } else {
+    delete headers['Content-Type']
   }
 
   const response = await fetch(`${API_BASE}${url}`, {
@@ -66,7 +75,6 @@ export const publicFetch = async (url, options = {}) => {
   })
 
   let data
-
   try {
     data = await parseResponse(response)
   } catch (error) {

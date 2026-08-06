@@ -1,7 +1,6 @@
 import express from 'express'
-import fs from 'fs'
-import path from 'path'
 import multer from 'multer'
+import cloudinary from '../config/cloudinary.js'
 import Album from '../models/Album.js'
 import Photo from '../models/Photo.js'
 import Comment from '../models/Comment.js'
@@ -10,28 +9,24 @@ import { authenticate, optionalAuthenticate } from '../middleware/auth.js'
 
 const router = express.Router()
 
-const uploadDir = path.resolve(process.cwd(), 'uploads')
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true })
-}
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadDir),
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname) || '.jpg'
-    cb(null, `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`)
-  }
+const storage = multer.memoryStorage()
+const upload = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 }
 })
 
-const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } })
+const uploadToCloudinary = (fileBuffer, folder = 'albums') => {
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      { folder },
+      (error, result) => {
+        if (error) return reject(error)
+        resolve(result)
+      }
+    )
 
-const deleteLocalUpload = (fileUrl) => {
-  if (!fileUrl || !fileUrl.startsWith('/uploads/')) return
-
-  const filePath = path.resolve(process.cwd(), fileUrl.replace(/^\//, ''))
-  if (fs.existsSync(filePath)) {
-    fs.unlinkSync(filePath)
-  }
+    stream.end(fileBuffer)
+  })
 }
 
 router.get('/', async (req, res) => {
@@ -48,6 +43,7 @@ router.get('/', async (req, res) => {
 
     res.json(albums)
   } catch (error) {
+    console.error('Erro ao carregar álbuns:', error)
     res.status(500).json({ message: 'Erro ao carregar álbuns', error: error.message })
   }
 })
@@ -57,30 +53,41 @@ router.get('/mine', authenticate, async (req, res) => {
     const albums = await Album.find({ owner: req.user._id }).sort({ createdAt: -1 })
     res.json(albums)
   } catch (error) {
+    console.error('Erro ao carregar os seus álbuns:', error)
     res.status(500).json({ message: 'Erro ao carregar os seus álbuns', error: error.message })
   }
 })
 
 router.post('/', authenticate, upload.single('coverImage'), async (req, res) => {
   try {
-    const { name, description, theme, isPublic } = req.body
-    const coverImageUrl = req.file ? `/uploads/${req.file.filename}` : req.body.coverImageUrl
+    const { name, description, theme, isPublic, coverImageUrl } = req.body
 
     if (!name || !theme) {
       return res.status(400).json({ message: 'Nome e tema são obrigatórios' })
+    }
+
+    let finalCoverImageUrl = coverImageUrl || ''
+    let finalCoverImagePublicId = ''
+
+    if (req.file) {
+      const uploadResult = await uploadToCloudinary(req.file.buffer, 'albums')
+      finalCoverImageUrl = uploadResult.secure_url
+      finalCoverImagePublicId = uploadResult.public_id
     }
 
     const album = await Album.create({
       name,
       description,
       theme,
-      coverImageUrl,
+      coverImageUrl: finalCoverImageUrl,
+      coverImagePublicId: finalCoverImagePublicId,
       isPublic: isPublic !== 'false' && isPublic !== false,
       owner: req.user._id
     })
 
     res.status(201).json(album)
   } catch (error) {
+    console.error('Erro ao criar álbum:', error)
     res.status(500).json({ message: 'Erro ao criar álbum', error: error.message })
   }
 })
@@ -109,19 +116,23 @@ router.put('/:albumId', authenticate, upload.single('coverImage'), async (req, r
     }
 
     if (req.file) {
-      deleteLocalUpload(album.coverImageUrl)
-      album.coverImageUrl = `/uploads/${req.file.filename}`
-    } else if (typeof coverImageUrl !== 'undefined') {
-      if (coverImageUrl !== album.coverImageUrl) {
-        deleteLocalUpload(album.coverImageUrl)
+      if (album.coverImagePublicId) {
+        await cloudinary.uploader.destroy(album.coverImagePublicId)
       }
+
+      const uploadResult = await uploadToCloudinary(req.file.buffer, 'albums')
+      album.coverImageUrl = uploadResult.secure_url
+      album.coverImagePublicId = uploadResult.public_id
+    } else if (typeof coverImageUrl !== 'undefined') {
       album.coverImageUrl = coverImageUrl
+      album.coverImagePublicId = ''
     }
 
     await album.save()
 
     res.json(album)
   } catch (error) {
+    console.error('Erro ao atualizar álbum:', error)
     res.status(500).json({ message: 'Erro ao atualizar álbum', error: error.message })
   }
 })
@@ -139,7 +150,7 @@ router.delete('/:albumId', authenticate, async (req, res) => {
       return res.status(403).json({ message: 'Não tem permissão' })
     }
 
-    const photos = await Photo.find({ album: album._id }).select('_id imageUrl')
+    const photos = await Photo.find({ album: album._id }).select('_id imagePublicId')
     const photoIds = photos.map((photo) => photo._id)
 
     if (photoIds.length > 0) {
@@ -148,11 +159,16 @@ router.delete('/:albumId', authenticate, async (req, res) => {
       await Photo.deleteMany({ _id: { $in: photoIds } })
 
       for (const photo of photos) {
-        deleteLocalUpload(photo.imageUrl)
+        if (photo.imagePublicId) {
+          await cloudinary.uploader.destroy(photo.imagePublicId)
+        }
       }
     }
 
-    deleteLocalUpload(album.coverImageUrl)
+    if (album.coverImagePublicId) {
+      await cloudinary.uploader.destroy(album.coverImagePublicId)
+    }
+
     await album.deleteOne()
 
     res.json({
@@ -160,6 +176,7 @@ router.delete('/:albumId', authenticate, async (req, res) => {
       deletedPhotos: photoIds.length
     })
   } catch (error) {
+    console.error('Erro ao eliminar álbum:', error)
     res.status(500).json({ message: 'Erro ao eliminar álbum', error: error.message })
   }
 })
@@ -182,6 +199,7 @@ router.get('/:albumId', optionalAuthenticate, async (req, res) => {
 
     res.json({ album, photos })
   } catch (error) {
+    console.error('Erro ao carregar álbum:', error)
     res.status(500).json({ message: 'Erro ao carregar álbum', error: error.message })
   }
 })

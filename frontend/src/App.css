@@ -17,7 +17,6 @@
   --color-primary-soft: #f3e8ff;
   --color-primary-faint: #faf5ff;
 
-  --color-accent: #c084fc;
   --color-success: #16a34a;
   --color-danger: #b42318;
   --color-danger-soft: #ffe3e3;
@@ -37,9 +36,7 @@
   --transition-normal: 0.22s ease;
 }
 
-/* =========================
-   RESET / BASE
-========================= */
+/* RESET */
 
 * {
   box-sizing: border-box;
@@ -75,9 +72,7 @@ button {
   min-height: 100vh;
 }
 
-/* =========================
-   LAYOUT
-========================= */
+/* LAYOUT */
 
 .app-shell {
   max-width: 1240px;
@@ -139,9 +134,7 @@ button {
   color: var(--color-text);
 }
 
-/* =========================
-   TYPOGRAPHY / FEEDBACK
-========================= */
+/* TYPOGRAPHY */
 
 .status-message {
   margin: 0;
@@ -163,12 +156,9 @@ button {
   color: var(--color-text-muted);
 }
 
-/* =========================
-   BUTTONS
-========================= */
+/* BUTTONS */
 
 .button-link,
-.hero-main-btn,
 .auth-card button,
 .auth-toggle button,
 .user-box button,
@@ -186,9 +176,23 @@ button {
   text-decoration: none;
   font-weight: 700;
   transition: var(--transition-normal);
+  cursor: pointer;
 }
 
-.hero-main-btn,
+.button-link {
+  background: var(--color-primary-soft);
+  color: var(--color-primary-dark);
+  border-radius: 16px;
+  padding: 12px 16px;
+  line-height: 1;
+}
+
+.button-link:hover {
+  background: #eadcff;
+  color: var(--color-primary-dark);
+  transform: translateY(-1px);
+}
+
 .auth-card button,
 .auth-toggle button,
 .user-box button,
@@ -202,7 +206,6 @@ button {
   padding: 12px 16px;
 }
 
-.hero-main-btn:hover,
 .auth-card button:hover,
 .auth-toggle button:hover,
 .user-box button:hover,
@@ -211,18 +214,6 @@ button {
 .comment-form button:hover,
 .photo-modal-form button:hover {
   background: var(--color-primary-dark);
-  transform: translateY(-1px);
-}
-
-.button-link {
-  background: var(--color-primary-soft);
-  color: var(--color-primary-dark);
-  border-radius: 16px;
-  padding: 12px 16px;
-}
-
-.button-link:hover {
-  background: #eadcff;
   transform: translateY(-1px);
 }
 
@@ -265,7 +256,7 @@ button {
   width: 22px;
   height: 22px;
   fill: currentColor;
-  transition: transform 0.2s ease, fill 0.2s ease;
+  transition: transform 0.2s ease;
 }
 
 .photo-like-icon-btn:hover .photo-like-icon {
@@ -287,9 +278,7 @@ button {
   background: var(--color-danger-soft-hover);
 }
 
-/* =========================
-   PANELS / HERO / CARDS
-========================= */
+/* PANELS AND CARDS */
 
 .photo-panel,
 .form-panel {
@@ -437,9 +426,7 @@ button {
   text-decoration: underline;
 }
 
-/* =========================
-   FORMS
-========================= */
+/* FORMS */
 
 .form-panel form {
   display: grid;
@@ -453,11 +440,6 @@ button {
   display: grid;
   gap: 8px;
   color: var(--color-text-soft);
-}
-
-.form-panel label,
-.auth-card label {
-  font-size: 0.95rem;
 }
 
 .panel-header input,
@@ -483,7 +465,9 @@ button {
   color: var(--color-text);
   font-size: 0.96rem;
   outline: none;
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
 }
 
 .panel-header input:focus,
@@ -502,7 +486,7 @@ button {
 .lumen-search-box select:focus,
 .lumen-album-filter select:focus {
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.10);
+  box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.1);
 }
 
 .form-panel textarea,
@@ -522,9 +506,7 @@ button {
   font-size: 0.95rem;
 }
 
-/* =========================
-   AUTH
-========================= */
+/* AUTH */
 
 .auth-shell {
   min-height: 100vh;
@@ -552,9 +534,7 @@ button {
   line-height: 1.7;
 }
 
-/* =========================
-   PHOTO / COMMENTS
-========================= */
+/* PHOTOS AND COMMENTS */
 
 .photo-actions {
   margin-top: 16px;
@@ -608,9 +588,7 @@ button {
   color: var(--color-text);
 }
 
-/* =========================
-   HOME PAGE
-========================= */
+/* HOME PAGE */
 
 .lumen-navbar {
   display: grid;
@@ -645,10 +623,13 @@ button {
 .lumen-nav-links a,
 .lumen-nav-links button {
   border: none;
+  padding: 0;
   background: transparent;
   color: var(--color-text-soft);
   text-decoration: none;
   font-weight: 600;
+  cursor: pointer;
+  transition: color var(--transition-fast);
 }
 
 .lumen-nav-links a:hover,
@@ -691,6 +672,10 @@ button {
   font-size: 1rem;
 }
 
+.lumen-hero-actions {
+  margin-top: 28px;
+}
+
 .lumen-hero-image-card {
   min-height: 320px;
   overflow: hidden;
@@ -712,6 +697,8 @@ button {
   background: linear-gradient(135deg, #f3e8ff 0%, #ede9fe 100%);
   color: var(--color-primary-dark);
   font-weight: 700;
+  text-align: center;
+  padding: 20px;
 }
 
 .lumen-section-header {
@@ -729,6 +716,7 @@ button {
   background: transparent;
   color: var(--color-primary-dark);
   font-weight: 700;
+  cursor: pointer;
 }
 
 .lumen-photo-row {
@@ -768,49 +756,31 @@ button {
   color: var(--color-text-muted);
 }
 
-.themes-header {
-  margin-top: 8px;
-}
-
-.lumen-theme-row {
-  margin-bottom: 24px;
-}
-
-.lumen-album-filter {
-  max-width: 340px;
-}
-
-.lumen-album-filter label {
-  font-weight: 600;
-}
-
-/* =========================
-   CLICKABLE CARD
-========================= */
-
 .lumen-photo-card-clickable {
   cursor: pointer;
-  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  transition:
+    transform var(--transition-fast),
+    box-shadow var(--transition-fast);
 }
 
 .lumen-photo-card-clickable:hover {
   transform: translateY(-4px);
 }
 
-/* =========================
-   PHOTO MODAL
-========================= */
+/* PHOTO MODAL */
 
-.photo-modal-backdrop {
+.photo-modal-backdrop,
+.album-create-backdrop,
+.photo-create-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 999;
+  z-index: 99999;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 24px;
-  background: rgba(17, 12, 27, 0.72);
-  backdrop-filter: blur(8px);
+  background: rgba(17, 12, 27, 0.68);
+  backdrop-filter: blur(10px);
 }
 
 .photo-modal-reference {
@@ -825,7 +795,9 @@ button {
   box-shadow: var(--shadow-modal);
 }
 
-.photo-modal-close {
+.photo-modal-close,
+.album-create-close,
+.photo-create-close {
   position: absolute;
   top: 16px;
   right: 16px;
@@ -969,80 +941,22 @@ button {
   color: #746d83;
 }
 
-/* =========================
-   ALBUM EDIT MODAL
-========================= */
+/* ALBUM CREATE MODAL */
 
-.album-edit-modal {
+.album-create-modal,
+.photo-create-modal {
   position: relative;
-  width: min(620px, 100%);
-  max-height: 90vh;
-  overflow-y: auto;
-  border-radius: 24px;
-  background: #ffffff;
-  padding: 28px;
-  box-shadow: var(--shadow-modal);
-}
-
-.album-edit-modal h2 {
-  margin-bottom: 18px;
-}
-
-.album-edit-form {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-/* =========================
-   ALBUM CREATE MODAL
-========================= */
-
-.album-create-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 99999;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-  background: rgba(17, 12, 27, 0.68);
-  backdrop-filter: blur(10px);
-  pointer-events: auto;
-}
-
-.album-create-modal {
-  position: relative;
-  z-index: 100000;
   width: min(980px, calc(100vw - 48px));
   max-height: calc(100vh - 48px);
   overflow-y: auto;
-  overflow-x: hidden;
   border-radius: 28px;
   background: #ffffff;
-  box-shadow: 0 24px 80px rgba(33, 17, 64, 0.25);
-  pointer-events: auto;
-  isolation: isolate;
-}
-
-.album-create-close {
-  position: absolute;
-  top: 18px;
-  right: 18px;
-  z-index: 2;
-  width: 42px;
-  height: 42px;
-  border: none;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.92);
-  font-size: 18px;
-  cursor: pointer;
+  box-shadow: var(--shadow-modal);
 }
 
 .album-create-layout {
   display: grid;
   grid-template-columns: 1.1fr 0.9fr;
-  min-height: 0;
 }
 
 .album-create-form-side {
@@ -1072,12 +986,14 @@ button {
   line-height: 1.6;
 }
 
-.album-create-form {
+.album-create-form,
+.photo-create-form {
   display: grid;
-  gap: 18px;
+  gap: 16px;
 }
 
-.album-create-field {
+.album-create-field,
+.photo-create-form label {
   display: grid;
   gap: 8px;
   color: var(--color-text-soft);
@@ -1086,7 +1002,10 @@ button {
 
 .album-create-form input,
 .album-create-form textarea,
-.album-create-form select {
+.album-create-form select,
+.photo-create-form input,
+.photo-create-form textarea,
+.photo-create-form select {
   width: 100%;
   border: 1px solid var(--color-border-soft);
   border-radius: 16px;
@@ -1095,10 +1014,10 @@ button {
   color: var(--color-text);
   font: inherit;
   outline: none;
-  pointer-events: auto;
 }
 
-.album-create-form textarea {
+.album-create-form textarea,
+.photo-create-form textarea {
   min-height: 110px;
   resize: vertical;
 }
@@ -1106,9 +1025,11 @@ button {
 .album-create-form input:focus,
 .album-create-form textarea:focus,
 .album-create-form select:focus,
-.album-create-url input:focus {
+.photo-create-form input:focus,
+.photo-create-form textarea:focus,
+.photo-create-form select:focus {
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.10);
+  box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.1);
 }
 
 .album-create-fieldset {
@@ -1166,7 +1087,8 @@ button {
   line-height: 1.4;
 }
 
-.album-create-actions {
+.album-create-actions,
+.photo-create-actions {
   display: flex;
   gap: 12px;
   justify-content: flex-end;
@@ -1174,7 +1096,9 @@ button {
 }
 
 .album-create-secondary,
-.album-create-primary {
+.album-create-primary,
+.photo-create-secondary,
+.photo-create-primary {
   border: none;
   border-radius: 16px;
   padding: 14px 20px;
@@ -1182,12 +1106,14 @@ button {
   cursor: pointer;
 }
 
-.album-create-secondary {
+.album-create-secondary,
+.photo-create-secondary {
   background: var(--color-primary-soft);
   color: var(--color-primary-dark);
 }
 
-.album-create-primary {
+.album-create-primary,
+.photo-create-primary {
   background: linear-gradient(135deg, #8b5cf6, #6d28d9);
   color: white;
 }
@@ -1206,7 +1132,7 @@ button {
   background: #ffffff;
   border-radius: 24px;
   padding: 18px;
-  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.06);
+  box-shadow: var(--shadow-soft);
 }
 
 .album-create-preview-label {
@@ -1273,63 +1199,11 @@ button {
   outline: none;
 }
 
-@media (max-width: 900px) {
-  .album-create-layout {
-    grid-template-columns: 1fr;
-  }
-
-  .album-create-form-side {
-    padding: 28px;
-  }
-
-  .album-create-preview-side {
-    padding: 24px;
-  }
-
-  .album-create-modal {
-    max-height: calc(100vh - 24px);
-    width: calc(100vw - 24px);
-  }
-}
-
-/* =========================
-   CREATE PHOTO MODAL
-========================= */
-
-.photo-create-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 99999;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-  background: rgba(17, 12, 27, 0.68);
-  backdrop-filter: blur(10px);
-}
+/* PHOTO CREATE MODAL */
 
 .photo-create-modal {
-  position: relative;
   width: min(920px, calc(100vw - 48px));
-  max-height: calc(100vh - 48px);
-  overflow-y: auto;
-  border-radius: 28px;
-  background: #ffffff;
-  box-shadow: 0 24px 80px rgba(33, 17, 64, 0.25);
   padding: 28px;
-}
-
-.photo-create-close {
-  position: absolute;
-  top: 18px;
-  right: 18px;
-  width: 42px;
-  height: 42px;
-  border: none;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.92);
-  font-size: 18px;
-  cursor: pointer;
 }
 
 .photo-create-modal h2 {
@@ -1444,7 +1318,7 @@ button {
 .photo-create-form textarea:focus,
 .photo-create-form select:focus {
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.10);
+  box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.1);
 }
 
 .photo-create-actions {
@@ -1473,15 +1347,7 @@ button {
   color: white;
 }
 
-@media (max-width: 820px) {
-  .photo-create-layout {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* =========================
-   EXPLORE PAGE
-========================= */
+/* EXPLORE PAGE */
 
 .explore-page {
   padding-top: 10px;
@@ -1518,4 +1384,106 @@ button {
 
 .explore-grid {
   margin-bottom: 28px;
+}
+
+/* RESPONSIVE */
+
+@media (max-width: 900px) {
+  .content-grid,
+  .lumen-hero,
+  .album-create-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .album-create-form-side {
+    padding: 28px;
+  }
+
+  .album-create-preview-side {
+    padding: 24px;
+  }
+
+  .lumen-photo-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 820px) {
+  .photo-create-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .lumen-navbar {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .lumen-nav-links,
+  .lumen-nav-actions {
+    justify-content: flex-start;
+  }
+
+  .lumen-search-box {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .lumen-hero-copy h1 {
+    max-width: none;
+  }
+
+  .photo-modal-reference {
+    grid-template-columns: 1fr;
+    max-height: 94vh;
+    overflow-y: auto;
+  }
+
+  .photo-modal-media {
+    min-height: 300px;
+    max-height: 45vh;
+  }
+}
+
+@media (max-width: 480px) {
+  .app-shell {
+    padding: 16px;
+  }
+
+  .lumen-nav-links,
+  .lumen-nav-actions,
+  .lumen-hero-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .lumen-nav-links a,
+  .lumen-nav-links button,
+  .lumen-nav-actions .button-link,
+  .lumen-nav-actions button,
+  .lumen-hero-actions .button-link {
+    width: 100%;
+    text-align: center;
+  }
+
+  .lumen-photo-row {
+    grid-template-columns: 1fr;
+  }
+
+  .lumen-section-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .album-create-modal,
+  .photo-create-modal {
+    width: calc(100vw - 24px);
+    max-height: calc(100vh - 24px);
+  }
+
+  .album-create-form-side,
+  .photo-create-modal {
+    padding: 22px;
+  }
 }

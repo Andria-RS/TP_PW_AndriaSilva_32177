@@ -13,5 +13,8 @@
     "lint:frontend": "npm --prefix frontend run lint",
     "dev:backend": "npm --prefix backend run dev",
     "start:backend": "npm --prefix backend run start"
+  },
+  "dependencies": {
+    "cloudinary": "^2.10.0"
   }
 }

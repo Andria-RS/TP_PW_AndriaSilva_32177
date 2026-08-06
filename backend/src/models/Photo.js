@@ -4,6 +4,7 @@ const photoSchema = new mongoose.Schema(
   {
     title: { type: String, required: true },
     imageUrl: { type: String, required: true },
+    imagePublicId: { type: String },
     theme: { type: String },
     description: { type: String },
     album: { type: mongoose.Schema.Types.ObjectId, ref: 'Album' },

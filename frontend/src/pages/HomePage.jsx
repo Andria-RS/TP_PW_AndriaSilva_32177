@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { authFetch, publicFetch } from '../services/api.js'
 import { ALLOWED_THEMES } from '../constants/themes.js'
@@ -9,6 +9,7 @@ import CreatePhotoModal from '../components/CreatePhotoModal.jsx'
 
 function HomePage() {
   const navigate = useNavigate()
+
   const [user, setUser] = useState(null)
   const [albums, setAlbums] = useState([])
   const [photos, setPhotos] = useState([])
@@ -32,16 +33,15 @@ function HomePage() {
     fetchPhotos()
   }, [user, themeFilter, selectedAlbum])
 
-  const themeSuggestions = useMemo(() => {
-    const themes = [...new Set(albums.map((album) => album.theme).filter(Boolean))]
-    return themes.slice(0, 8)
-  }, [albums])
-
   const featuredPhoto = photos[0] || null
 
   const getImageUrl = (imageUrl) => {
     if (!imageUrl) return ''
-    if (imageUrl.startsWith('http')) return imageUrl
+
+    if (imageUrl.startsWith('http')) {
+      return imageUrl
+    }
+
     return `http://localhost:4000${imageUrl}`
   }
 
@@ -66,11 +66,18 @@ function HomePage() {
   const fetchPhotos = async () => {
     try {
       const params = []
-      if (themeFilter) params.push(`theme=${encodeURIComponent(themeFilter)}`)
-      if (selectedAlbum) params.push(`albumId=${encodeURIComponent(selectedAlbum)}`)
-      const query = params.length ? `?${params.join('&')}` : ''
 
+      if (themeFilter) {
+        params.push(`theme=${encodeURIComponent(themeFilter)}`)
+      }
+
+      if (selectedAlbum) {
+        params.push(`albumId=${encodeURIComponent(selectedAlbum)}`)
+      }
+
+      const query = params.length ? `?${params.join('&')}` : ''
       const data = await publicFetch(`/photos${query}`)
+
       setPhotos(data)
 
       const likesEntries = await Promise.all(
@@ -98,7 +105,10 @@ function HomePage() {
       const commentsEntries = await Promise.all(
         data.map(async (photo) => {
           try {
-            const response = await publicFetch(`/comments/photo/${photo._id}`)
+            const response = await publicFetch(
+              `/comments/photo/${photo._id}`
+            )
+
             return [photo._id, response]
           } catch {
             return [photo._id, []]
@@ -125,9 +135,16 @@ function HomePage() {
   const fetchPhotoComments = async (photoId) => {
     try {
       const data = await publicFetch(`/comments/photo/${photoId}`)
-      setPhotoComments((prev) => ({ ...prev, [photoId]: data }))
+
+      setPhotoComments((previous) => ({
+        ...previous,
+        [photoId]: data
+      }))
     } catch {
-      setPhotoComments((prev) => ({ ...prev, [photoId]: [] }))
+      setPhotoComments((previous) => ({
+        ...previous,
+        [photoId]: []
+      }))
     }
   }
 
@@ -137,17 +154,35 @@ function HomePage() {
         ? await authFetch(`/likes/photo/${photoId}`)
         : await publicFetch(`/likes/photo/${photoId}`)
 
-      setPhotoLikes((prev) => ({ ...prev, [photoId]: response.likes || 0 }))
-      setPhotoLikedByMe((prev) => ({ ...prev, [photoId]: Boolean(response.likedByMe) }))
+      setPhotoLikes((previous) => ({
+        ...previous,
+        [photoId]: response.likes || 0
+      }))
+
+      setPhotoLikedByMe((previous) => ({
+        ...previous,
+        [photoId]: Boolean(response.likedByMe)
+      }))
     } catch {
-      setPhotoLikes((prev) => ({ ...prev, [photoId]: 0 }))
-      setPhotoLikedByMe((prev) => ({ ...prev, [photoId]: false }))
+      setPhotoLikes((previous) => ({
+        ...previous,
+        [photoId]: 0
+      }))
+
+      setPhotoLikedByMe((previous) => ({
+        ...previous,
+        [photoId]: false
+      }))
     }
   }
 
   const handleOpenPhoto = async (photo) => {
     setSelectedPhoto(photo)
-    await Promise.all([fetchPhotoComments(photo._id), fetchPhotoLikes(photo._id)])
+
+    await Promise.all([
+      fetchPhotoComments(photo._id),
+      fetchPhotoLikes(photo._id)
+    ])
   }
 
   const handleClosePhoto = () => {
@@ -155,15 +190,17 @@ function HomePage() {
   }
 
   const handleCommentChange = (photoId, value) => {
-    setCommentInput((prev) => ({
-      ...prev,
+    setCommentInput((previous) => ({
+      ...previous,
       [photoId]: value
     }))
   }
 
   const handleCommentSubmit = async (event, photoId) => {
     event.preventDefault()
+
     const text = (commentInput[photoId] || '').trim()
+
     if (!text) return
 
     try {
@@ -171,7 +208,12 @@ function HomePage() {
         method: 'POST',
         body: JSON.stringify({ text })
       })
-      setCommentInput((prev) => ({ ...prev, [photoId]: '' }))
+
+      setCommentInput((previous) => ({
+        ...previous,
+        [photoId]: ''
+      }))
+
       await fetchPhotoComments(photoId)
       setStatus('Comentário adicionado')
     } catch (error) {
@@ -185,8 +227,16 @@ function HomePage() {
         method: 'POST'
       })
 
-      setPhotoLikes((prev) => ({ ...prev, [photoId]: response.likes || 0 }))
-      setPhotoLikedByMe((prev) => ({ ...prev, [photoId]: Boolean(response.likedByMe) }))
+      setPhotoLikes((previous) => ({
+        ...previous,
+        [photoId]: response.likes || 0
+      }))
+
+      setPhotoLikedByMe((previous) => ({
+        ...previous,
+        [photoId]: Boolean(response.likedByMe)
+      }))
+
       setStatus(response.message || 'Gostei atualizado')
     } catch (error) {
       setStatus(error.message)
@@ -215,8 +265,9 @@ function HomePage() {
   }) => {
     try {
       const formData = new FormData()
+
       formData.append('name', name)
-      formData.append('description', description)
+      formData.append('description', description || '')
       formData.append('theme', theme)
       formData.append('isPublic', String(isPublic))
 
@@ -233,6 +284,7 @@ function HomePage() {
 
       setStatus('Álbum criado')
       setIsCreateAlbumOpen(false)
+
       await fetchAlbums()
     } catch (error) {
       setStatus(error.message)
@@ -250,8 +302,9 @@ function HomePage() {
   }) => {
     try {
       const formData = new FormData()
+
       formData.append('title', title)
-      formData.append('description', description)
+      formData.append('description', description || '')
       formData.append('albumId', albumId)
       formData.append('theme', theme)
       formData.append('isPublic', String(isPublic))
@@ -269,6 +322,7 @@ function HomePage() {
 
       setStatus('Fotografia adicionada')
       setIsAddPhotoOpen(false)
+
       await fetchAlbums()
       await fetchPhotos()
     } catch (error) {
@@ -285,18 +339,21 @@ function HomePage() {
         </div>
 
         <nav className="lumen-nav-links">
-          <Link to="/">Explorar</Link>
-          <button type="button" onClick={clearFilters}>Álbuns</button>
-          <button type="button" onClick={clearFilters}>Comunidade</button>
+          <Link to="/explore">Explorar</Link>
+
+          <button type="button" onClick={clearFilters}>
+            Álbuns
+          </button>
         </nav>
 
         <div className="lumen-nav-actions">
           <div className="lumen-search-box">
             <select
               value={themeFilter}
-              onChange={(e) => setThemeFilter(e.target.value)}
+              onChange={(event) => setThemeFilter(event.target.value)}
             >
               <option value="">Todos os temas</option>
+
               {ALLOWED_THEMES.map((theme) => (
                 <option key={theme} value={theme}>
                   {theme}
@@ -307,11 +364,22 @@ function HomePage() {
 
           {user ? (
             <>
-              <Link className="button-link" to="/profile">Perfil</Link>
-              <button type="button" onClick={handleLogout}>Sair</button>
+              <Link className="button-link" to="/profile">
+                Perfil
+              </Link>
+
+              <button
+                type="button"
+                className="button-link"
+                onClick={handleLogout}
+              >
+                Sair
+              </button>
             </>
           ) : (
-            <Link className="button-link" to="/login">Entrar</Link>
+            <Link className="button-link" to="/login">
+              Entrar
+            </Link>
           )}
         </div>
       </header>
@@ -319,20 +387,13 @@ function HomePage() {
       <section className="lumen-hero">
         <div className="lumen-hero-copy">
           <h1>Descobre o mundo através de outras lentes</h1>
+
           <p>
             Explora fotografias, encontra novas perspetivas e partilha os teus
             melhores momentos na Lumen.
           </p>
 
           <div className="lumen-hero-actions">
-            <button
-              type="button"
-              className="hero-main-btn"
-              onClick={() => navigate('/explore')}
-            >
-              Explorar fotografias
-            </button>
-
             <button
               type="button"
               className="button-link"
@@ -363,7 +424,10 @@ function HomePage() {
             <div className="lumen-hero-placeholder">
               <div>
                 <strong>Sem fotografia em destaque</strong>
-                <p>Adiciona fotos públicas para dar vida à homepage da Lumen.</p>
+
+                <p>
+                  Adiciona fotos públicas para dar vida à homepage da Lumen.
+                </p>
               </div>
             </div>
           )}
@@ -372,13 +436,20 @@ function HomePage() {
 
       <section className="lumen-section-header">
         <h2>Fotografias recentes</h2>
-        <button type="button" className="lumen-inline-action" onClick={clearFilters}>
+
+        <button
+          type="button"
+          className="lumen-inline-action"
+          onClick={() => navigate('/explore')}
+        >
           Ver todas →
         </button>
       </section>
 
       {photos.length === 0 ? (
-        <div className="empty-state">Nenhuma fotografia encontrada.</div>
+        <div className="empty-state">
+          Nenhuma fotografia encontrada.
+        </div>
       ) : (
         <section className="lumen-photo-row">
           {photos.slice(0, 4).map((photo) => (
@@ -401,10 +472,26 @@ function HomePage() {
         isOpen={Boolean(selectedPhoto)}
         onClose={handleClosePhoto}
         user={user}
-        likesCount={selectedPhoto ? photoLikes[selectedPhoto._id] ?? 0 : 0}
-        likedByMe={selectedPhoto ? photoLikedByMe[selectedPhoto._id] ?? false : false}
-        comments={selectedPhoto ? photoComments[selectedPhoto._id] || [] : []}
-        commentValue={selectedPhoto ? commentInput[selectedPhoto._id] || '' : ''}
+        likesCount={
+          selectedPhoto
+            ? photoLikes[selectedPhoto._id] ?? 0
+            : 0
+        }
+        likedByMe={
+          selectedPhoto
+            ? photoLikedByMe[selectedPhoto._id] ?? false
+            : false
+        }
+        comments={
+          selectedPhoto
+            ? photoComments[selectedPhoto._id] || []
+            : []
+        }
+        commentValue={
+          selectedPhoto
+            ? commentInput[selectedPhoto._id] || ''
+            : ''
+        }
         onCommentChange={handleCommentChange}
         onCommentSubmit={handleCommentSubmit}
         onLike={handleLikePhoto}
@@ -424,7 +511,11 @@ function HomePage() {
         albums={albums}
       />
 
-      {status && <p className="status-message home-status">{status}</p>}
+      {status && (
+        <p className="status-message home-status">
+          {status}
+        </p>
+      )}
     </main>
   )
 }

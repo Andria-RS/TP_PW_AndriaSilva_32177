@@ -31,7 +31,7 @@ function CreateAlbumModal({
     })
     setCoverImageFile(null)
     setImagePreview(initialValues?.coverImageUrl || '')
-  }, [isOpen])
+  }, [isOpen, initialValues])
 
   useEffect(() => {
     if (!coverImageFile) return
@@ -67,13 +67,18 @@ function CreateAlbumModal({
     }))
   }
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault()
-    onSubmit({
-      ...form,
-      coverImageFile,
-      coverImageUrl: coverImageFile ? '' : form.coverImageUrl
-    })
+
+    try {
+      await onSubmit({
+        ...form,
+        coverImageFile,
+        coverImageUrl: coverImageFile ? '' : form.coverImageUrl
+      })
+    } catch (error) {
+      console.error('CreateAlbumModal submit error:', error)
+    }
   }
 
   return (
@@ -136,7 +141,6 @@ function CreateAlbumModal({
                   <input
                     type="radio"
                     name="visibility"
-                    value="public"
                     checked={form.isPublic === true}
                     onChange={() => handleChange('isPublic', true)}
                   />
@@ -150,7 +154,6 @@ function CreateAlbumModal({
                   <input
                     type="radio"
                     name="visibility"
-                    value="private"
                     checked={form.isPublic === false}
                     onChange={() => handleChange('isPublic', false)}
                   />
